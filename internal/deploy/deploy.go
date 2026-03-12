@@ -42,7 +42,7 @@ func Create(name string) error {
 		panic(err.Error())
 	}
 
-	pod, err := clientset.CoreV1().Pods("default").Create(context.TODO(), &v1.Pod{
+	_, err = clientset.CoreV1().Pods("default").Create(context.TODO(), &v1.Pod{
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
 				{Name: name, Image: "nginx"},
@@ -55,6 +55,38 @@ func Create(name string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(pod)
+	return nil
+}
+
+func Update(name string, newName string) error {
+	err := Delete(name)
+	if err != nil {
+		return err
+	}
+
+	err = Create(newName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func Delete(name string) error {
+	config, err := clientcmd.BuildConfigFromFlags("", "/etc/rancher/k3s/k3s.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	err = clientset.CoreV1().Pods("default").Delete(context.TODO(), name, metav1.DeleteOptions{})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
