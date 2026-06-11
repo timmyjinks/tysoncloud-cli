@@ -5,7 +5,7 @@ import (
 )
 
 func main() {
-	if err := deployCmd.Execute(); err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)
 	}
 }
