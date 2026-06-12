@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/spf13/cobra"
 )
@@ -11,6 +11,7 @@ var pullCmd = &cobra.Command{
 	Short: "pull infra to current machine",
 	Annotations: map[string]string{
 		"supabase": "true",
+		"deploy":   "true",
 	},
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -18,7 +19,14 @@ var pullCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Println(deployments)
+		for _, deployment := range deployments {
+			if deployment.Type == "docker" {
+				err := app.dsvc.Create(deployment.Name, deployment.Source)
+				if err != nil {
+					log.Println(err)
+				}
+			}
+		}
 
 		// possible issues with env
 		return nil

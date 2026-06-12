@@ -6,16 +6,19 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
 	"github.com/timmyjinks/tysoncloud-cli/db"
+	"github.com/timmyjinks/tysoncloud-cli/deploy"
 	"github.com/timmyjinks/tysoncloud-cli/store"
 )
 
 type App struct {
 	store *store.SQLStoreService
 	sp    *store.SupabaseStoreService
+	dsvc  *deploy.DeployService
 }
 
 var spURL = os.Getenv("SUPABASE_URL")
 var spKey = os.Getenv("SUPABASE_API_KEY")
+var kubeConfig = os.Getenv("KUBECONFIG")
 
 var app *App = &App{}
 
@@ -55,6 +58,11 @@ var rootCmd = &cobra.Command{
 			}
 			app.store = store.NewSQLStoreService(db)
 
+		}
+
+		if target.Annotations["deploy"] == "true" {
+			dsvc := deploy.NewDeployService("tysoncloud", kubeConfig)
+			app.dsvc = dsvc
 		}
 
 		return nil
