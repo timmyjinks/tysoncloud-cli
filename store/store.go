@@ -1,17 +1,30 @@
 package store
 
-import "database/sql"
+import (
+	"database/sql"
+	"github.com/supabase-community/supabase-go"
+)
 
-type StoreService struct {
+type SQLStoreService struct {
 	db *sql.DB
 }
 
-func NewStoreService(db *sql.DB) *StoreService {
-	return &StoreService{
+type SupabaseStoreService struct {
+	cli *supabase.Client
+}
+
+func NewSQLStoreService(db *sql.DB) *SQLStoreService {
+	return &SQLStoreService{
 		db: db,
 	}
 }
 
-func (s *StoreService) Close() {
+func NewSupabaseStoreService(cli *supabase.Client) *SupabaseStoreService {
+	return &SupabaseStoreService{
+		cli: cli,
+	}
+}
+
+func (s *SQLStoreService) Close() {
 	s.db.Close()
 }

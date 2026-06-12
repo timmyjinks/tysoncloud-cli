@@ -11,7 +11,7 @@ type Server struct {
 	Addr        string
 }
 
-func (s *StoreService) GetServers() ([]Server, error) {
+func (s *SQLStoreService) GetServers() ([]Server, error) {
 	servers := make([]Server, 0)
 	rows, err := s.db.Query("SELECT * FROM servers")
 	if err != nil {
@@ -34,7 +34,7 @@ func (s *StoreService) GetServers() ([]Server, error) {
 	return servers, nil
 }
 
-func (s *StoreService) GetServerNames() ([]string, error) {
+func (s *SQLStoreService) GetServerNames() ([]string, error) {
 	names := make([]string, 0)
 	rows, err := s.db.Query("SELECT name FROM servers")
 	if err != nil {
@@ -57,7 +57,7 @@ func (s *StoreService) GetServerNames() ([]string, error) {
 	return names, nil
 }
 
-func (s *StoreService) GetServerByName(name string) (Server, error) {
+func (s *SQLStoreService) GetServerByName(name string) (Server, error) {
 	server := Server{}
 	err := s.db.QueryRow("SELECT * FROM servers where name = $1", name).Scan(&server.Id, &server.Name, &server.Description, &server.Addr)
 	if err != nil {
@@ -66,7 +66,7 @@ func (s *StoreService) GetServerByName(name string) (Server, error) {
 	return server, nil
 }
 
-func (s *StoreService) AddServer(name string, description string, addr string) error {
+func (s *SQLStoreService) AddServer(name string, description string, addr string) error {
 	uid, err := uuid.NewRandom()
 	if err != nil {
 		return err
@@ -77,10 +77,10 @@ func (s *StoreService) AddServer(name string, description string, addr string) e
 	return nil
 }
 
-func (s *StoreService) UpdateServer(name string, description string, addr string) error {
+func (s *SQLStoreService) UpdateServer(name string, description string, addr string) error {
 	return nil
 }
 
-func (s *StoreService) DeleteServer(name string) error {
+func (s *SQLStoreService) DeleteServer(name string) error {
 	return nil
 }
