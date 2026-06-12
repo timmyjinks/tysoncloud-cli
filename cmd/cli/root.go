@@ -11,7 +11,6 @@ import (
 )
 
 type App struct {
-	// services go here
 	store *store.StoreService
 	sp    *supabase.Client
 }
