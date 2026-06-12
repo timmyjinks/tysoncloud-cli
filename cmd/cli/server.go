@@ -41,6 +41,7 @@ var getServerCmd = &cobra.Command{
 	Annotations: map[string]string{
 		"database": "true",
 	},
+	ValidArgsFunction: getServerComplete,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 1 {
 			name := args[0]
