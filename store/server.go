@@ -17,7 +17,6 @@ func (s *StoreService) GetServers() ([]Server, error) {
 	if err != nil {
 		return []Server{}, err
 	}
-	defer rows.Close()
 
 	for rows.Next() {
 		server := Server{}
@@ -28,7 +27,34 @@ func (s *StoreService) GetServers() ([]Server, error) {
 		servers = append(servers, server)
 	}
 
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+
 	return servers, nil
+}
+
+func (s *StoreService) GetServerNames() ([]string, error) {
+	names := make([]string, 0)
+	rows, err := s.db.Query("SELECT name FROM servers")
+	if err != nil {
+		return []string{}, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		name := ""
+		err := rows.Scan(&name)
+		if err != nil {
+			return []string{}, err
+		}
+		if err := rows.Err(); err != nil {
+			return []string{}, err
+		}
+		names = append(names, name)
+	}
+
+	return names, nil
 }
 
 func (s *StoreService) GetServerByName(name string) (Server, error) {

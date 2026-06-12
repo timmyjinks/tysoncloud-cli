@@ -33,7 +33,14 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		if cmd.Annotations["supabase"] == "true" {
+		target := cmd
+		if cmd.Name() == cobra.ShellCompRequestCmd {
+			if found, _, err := cmd.Root().Find(args); err == nil {
+				target = found
+			}
+		}
+
+		if target.Annotations["supabase"] == "true" {
 			sp, err := supabase.NewClient(spURL, spKey, &supabase.ClientOptions{})
 			if err != nil {
 				return err
@@ -41,7 +48,7 @@ var rootCmd = &cobra.Command{
 			app.sp = sp
 		}
 
-		if cmd.Annotations["database"] == "true" {
+		if target.Annotations["database"] == "true" {
 			db, err := db.NewSqliteStorage()
 			if err != nil {
 				return err
