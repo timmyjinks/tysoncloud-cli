@@ -19,7 +19,6 @@ var loginCmd = &cobra.Command{
 }
 
 func loginRun(cmd *cobra.Command, args []string) {
-	defer app.db.Close()
 	fmt.Println(args[0])
 	fmt.Println(args[1])
 

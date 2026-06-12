@@ -12,7 +12,6 @@ var migrateCmd = &cobra.Command{
 }
 
 func migrateRun(cmd *cobra.Command, args []string) {
-	defer app.db.Close()
 	if len(args) != 1 {
 		cmd.Usage()
 		return

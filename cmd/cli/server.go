@@ -1,48 +1,78 @@
 package main
 
 import (
-	"errors"
 	"fmt"
+	"os"
+	"text/tabwriter"
 
-	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
-var name string
+type Server struct {
+	Id          string
+	Name        string
+	Description string
+	Addr        string
+}
+
 var description string
-var addr string
 
-var serverCmd = &cobra.Command{
-	Use:   "server",
+var addServerCmd = &cobra.Command{
+	Use:   "server [name] [address]",
 	Short: "add server resource",
-	Args:  cobra.ArbitraryArgs,
+	Args:  cobra.ExactArgs(2),
+	Annotations: map[string]string{
+		"database": "true",
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println(app)
-		defer app.db.Close()
-
-		if name == "" {
-			return errors.New("server name empty")
-		}
-
-		if addr == "" {
-			return errors.New("server addr empty")
-		}
-
-		uid, err := uuid.NewRandom()
-		if err != nil {
+		name := args[0]
+		addr := args[1]
+		if err := app.store.AddServer(name, description, addr); err != nil {
 			return err
 		}
+		return nil
+	},
+}
 
-		if _, err := app.db.Exec("INSERT INTO servers (id, name, description, addr) VALUES ($1, $2, $3, $4)", uid, name, description, addr); err != nil {
-			return err
+var getServerCmd = &cobra.Command{
+	Use:   "servers [name]",
+	Short: "get server resources",
+	Args:  cobra.MaximumNArgs(1),
+	Annotations: map[string]string{
+		"database": "true",
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 1 {
+			name := args[0]
+			server, err := app.store.GetServerByName(name)
+			if err != nil {
+				return err
+			}
+
+			w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+			fmt.Fprintln(w, "NAME\tDESCRIPTION\tADDRESS")
+			fmt.Fprintf(w, "%v\t%v\t%v\n", server.Name, server.Description, server.Addr)
+			w.Flush()
+
+			return nil
 		}
 
+		if len(args) == 0 {
+			servers, err := app.store.GetServers()
+			if err != nil {
+				return err
+			}
+			w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+			fmt.Fprintln(w, "NAME\tDESCRIPTION\tADDRESS")
+			for _, server := range servers {
+				fmt.Fprintf(w, "%v\t%v\t%v\n", server.Name, server.Description, server.Addr)
+			}
+			w.Flush()
+		}
 		return nil
 	},
 }
 
 func init() {
-	serverCmd.Flags().StringVarP(&name, "name", "n", "", "name of server")
-	serverCmd.Flags().StringVarP(&description, "description", "d", "", "description of server")
-	serverCmd.Flags().StringVarP(&addr, "addr", "a", "", "ip address of server")
+	addServerCmd.Flags().StringVarP(&description, "description", "d", "", "description of server")
 }

@@ -1,18 +1,23 @@
 package main
 
 import (
-	"database/sql"
 	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
+	"github.com/supabase-community/supabase-go"
 	"github.com/timmyjinks/tysoncloud-cli/db"
+	"github.com/timmyjinks/tysoncloud-cli/store"
 )
 
 type App struct {
 	// services go here
-	db *sql.DB
+	store *store.StoreService
+	sp    *supabase.Client
 }
+
+var spURL = os.Getenv("SUPABASE_URL")
+var spKey = os.Getenv("SUPABASE_KEY")
 
 var app *App = &App{}
 
@@ -29,22 +34,21 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		db, err := db.NewSqliteStorage()
-		if err != nil {
-			return err
+		if cmd.Annotations["supabase"] == "true" {
+			sp, err := supabase.NewClient(spURL, spKey, &supabase.ClientOptions{})
+			if err != nil {
+				return err
+			}
+			app.sp = sp
 		}
 
-		app.db = db
+		if cmd.Annotations["database"] == "true" {
+			db, err := db.NewSqliteStorage()
+			if err != nil {
+				return err
+			}
+			app.store = store.NewStoreService(db)
 
-		table := `CREATE TABLE IF NOT EXISTS servers (
-			id uuid PRIMARY KEY,
-			name TEXT NOT NULL,
-			description TEXT DEFAULT '',
-			addr TEXT NOT NULL
-		)`
-
-		if _, err := app.db.Exec(table); err != nil {
-			return err
 		}
 
 		return nil
@@ -53,6 +57,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(addCmd)
+	rootCmd.AddCommand(getCmd)
 	rootCmd.AddCommand(migrateCmd)
 	rootCmd.AddCommand(logoutCmd)
 	rootCmd.AddCommand(loginCmd)
