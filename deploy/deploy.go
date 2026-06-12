@@ -89,7 +89,7 @@ func (d *DeployService) Create(name string, image string) error {
 		return err
 	}
 
-	d.clientset.AutoscalingV2().HorizontalPodAutoscalers(d.namespace).Create(context.TODO(), &autoscalingv2.HorizontalPodAutoscaler{
+	if _, err := d.clientset.AutoscalingV2().HorizontalPodAutoscalers(d.namespace).Create(context.TODO(), &autoscalingv2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -101,9 +101,11 @@ func (d *DeployService) Create(name string, image string) error {
 			},
 			MaxReplicas: 10,
 		},
-	}, metav1.CreateOptions{})
+	}, metav1.CreateOptions{}); err != nil {
+		return err
+	}
 
-	d.clientset.CoreV1().Services(d.namespace).Create(context.TODO(), &v1.Service{
+	if _, err := d.clientset.CoreV1().Services(d.namespace).Create(context.TODO(), &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Labels: map[string]string{
@@ -121,7 +123,9 @@ func (d *DeployService) Create(name string, image string) error {
 				"app": name,
 			},
 		},
-	}, metav1.CreateOptions{})
+	}, metav1.CreateOptions{}); err != nil {
+		return err
+	}
 
 	return nil
 }
