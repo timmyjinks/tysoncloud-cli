@@ -21,7 +21,7 @@ var pullCmd = &cobra.Command{
 		}
 		for _, deployment := range deployments {
 			if deployment.Type == "docker" {
-				err := app.dsvc.Create(deployment.Name, deployment.Source)
+				err := app.dsvc.Create(deployment.Name, deployment.Source, deployment.Port)
 				if err != nil {
 					log.Println(err)
 				}

@@ -8,6 +8,7 @@ import (
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -45,7 +46,7 @@ func (d *DeployService) Get() {
 	}
 }
 
-func (d *DeployService) Create(name string, image string) error {
+func (d *DeployService) Create(name string, image string, port int32) error {
 	var replicas int32 = 1
 	_, err := d.clientset.AppsV1().Deployments(d.namespace).Create(context.TODO(), &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -76,7 +77,7 @@ func (d *DeployService) Create(name string, image string) error {
 							Ports: []v1.ContainerPort{
 								{
 									Protocol:      v1.ProtocolTCP,
-									ContainerPort: 3000,
+									ContainerPort: port,
 								},
 							},
 						},
@@ -115,8 +116,9 @@ func (d *DeployService) Create(name string, image string) error {
 		Spec: v1.ServiceSpec{
 			Ports: []v1.ServicePort{
 				{
-					Protocol: v1.ProtocolTCP,
-					Port:     3000,
+					Protocol:   v1.ProtocolTCP,
+					Port:       80,
+					TargetPort: intstr.FromInt32(port),
 				},
 			},
 			Selector: map[string]string{
@@ -136,7 +138,7 @@ func (d *DeployService) Update(name string, newName string) error {
 		return err
 	}
 
-	err = d.Create(newName, "nginx")
+	err = d.Create(newName, "nginx", 3000)
 	if err != nil {
 		return err
 	}

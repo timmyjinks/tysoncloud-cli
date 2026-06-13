@@ -18,10 +18,11 @@ type DeploymentTable struct {
 	CreatedAt   time.Time `json:"created_at"`
 	Type        string    `json:"type,omitempty"`
 	Volume      string    `json:"volume,omitempty"`
+	Port        int32     `json:"port,omitempty"`
 }
 
 func (s *SupabaseStoreService) GetDeployments() ([]DeploymentTable, error) {
-	res, _, err := s.cli.From("deployments").Select("*", "exact", false).Order("created_at", &postgrest.OrderOpts{Ascending: false}).Execute()
+	res, _, err := s.cli.From("deployments_duplicate").Select("*", "exact", false).Order("created_at", &postgrest.OrderOpts{Ascending: false}).Execute()
 	if err != nil {
 		return nil, err
 	}
