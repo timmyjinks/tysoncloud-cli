@@ -27,8 +27,6 @@ var pullCmd = &cobra.Command{
 				}
 			}
 		}
-
-		// possible issues with env
 		return nil
 	},
 }
