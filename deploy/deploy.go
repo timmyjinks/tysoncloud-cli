@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	appsv1 "k8s.io/api/apps/v1"
-	autoscalingv2 "k8s.io/api/autoscaling/v2"
-	v1 "k8s.io/api/core/v1"
+	"github.com/timmyjinks/tysoncloud-cli/util"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	appsv1apply "k8s.io/client-go/applyconfigurations/apps/v1"
+	v2 "k8s.io/client-go/applyconfigurations/autoscaling/v2"
+	appcorev1 "k8s.io/client-go/applyconfigurations/core/v1"
+	appmetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -48,36 +51,40 @@ func (d *DeployService) Get() {
 
 func (d *DeployService) Create(name string, image string, port int32) error {
 	var replicas int32 = 1
-	_, err := d.clientset.AppsV1().Deployments(d.namespace).Create(context.TODO(), &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+	_, err := d.clientset.AppsV1().Deployments(d.namespace).Apply(context.TODO(), &appsv1apply.DeploymentApplyConfiguration{
+		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
+			Kind:       util.StringPtr("Deployment"),
+			APIVersion: util.StringPtr("apps/v1"),
+		},
+		ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
+			Name: &name,
 			Labels: map[string]string{
 				"app": name,
 			},
 		},
-		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{
+		Spec: &appsv1apply.DeploymentSpecApplyConfiguration{
+			Selector: &appmetav1.LabelSelectorApplyConfiguration{
 				MatchLabels: map[string]string{
 					"app": name,
 				},
 			},
 			Replicas: &replicas,
-			Template: v1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: name,
+			Template: &appcorev1.PodTemplateSpecApplyConfiguration{
+				ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
+					Name: &name,
 					Labels: map[string]string{
 						"app": name,
 					},
 				},
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
+				Spec: &appcorev1.PodSpecApplyConfiguration{
+					Containers: []appcorev1.ContainerApplyConfiguration{
 						{
-							Name:  name,
-							Image: image,
-							Ports: []v1.ContainerPort{
+							Name:  &name,
+							Image: &image,
+							Ports: []appcorev1.ContainerPortApplyConfiguration{
 								{
-									Protocol:      v1.ProtocolTCP,
-									ContainerPort: port,
+									Protocol:      (*corev1.Protocol)(util.StringPtr(string(corev1.ProtocolTCP))),
+									ContainerPort: &port,
 								},
 							},
 						},
@@ -85,47 +92,61 @@ func (d *DeployService) Create(name string, image string, port int32) error {
 				},
 			},
 		},
-	}, metav1.CreateOptions{})
+	}, metav1.ApplyOptions{
+		FieldManager: "controller",
+	})
 	if err != nil {
 		return err
 	}
 
-	if _, err := d.clientset.AutoscalingV2().HorizontalPodAutoscalers(d.namespace).Create(context.TODO(), &autoscalingv2.HorizontalPodAutoscaler{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+	if _, err := d.clientset.CoreV1().Services(d.namespace).Apply(context.TODO(), &appcorev1.ServiceApplyConfiguration{
+		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
+			Kind:       util.StringPtr("Service"),
+			APIVersion: util.StringPtr("v1"),
 		},
-		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
-			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
-				APIVersion: "apps/v1",
-				Kind:       "Deployment",
-				Name:       name,
-			},
-			MaxReplicas: 10,
-		},
-	}, metav1.CreateOptions{}); err != nil {
-		return err
-	}
-
-	if _, err := d.clientset.CoreV1().Services(d.namespace).Create(context.TODO(), &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+		ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
+			Name: &name,
 			Labels: map[string]string{
 				"app": name,
 			},
 		},
-		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{
+		Spec: &appcorev1.ServiceSpecApplyConfiguration{
+			Ports: []appcorev1.ServicePortApplyConfiguration{
 				{
-					Protocol:   v1.ProtocolTCP,
-					Port:       80,
-					TargetPort: intstr.FromInt32(port),
+					Protocol:   (*corev1.Protocol)(util.StringPtr(string(corev1.ProtocolTCP))),
+					Port:       util.IntPtr(80),
+					TargetPort: &intstr.IntOrString{IntVal: port},
 				},
 			},
 			Selector: map[string]string{
 				"app": name,
 			},
 		},
-	}, metav1.CreateOptions{}); err != nil {
+	}, metav1.ApplyOptions{
+		FieldManager: "controller",
+	}); err != nil {
+		return err
+	}
+
+	if _, err := d.clientset.AutoscalingV2().HorizontalPodAutoscalers(d.namespace).Apply(context.TODO(), &v2.HorizontalPodAutoscalerApplyConfiguration{
+		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
+			Kind:       util.StringPtr("HorizontalPodAutoscaler"),
+			APIVersion: util.StringPtr("autoscaling/v2"),
+		},
+		ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
+			Name: &name,
+		},
+		Spec: &v2.HorizontalPodAutoscalerSpecApplyConfiguration{
+			ScaleTargetRef: &v2.CrossVersionObjectReferenceApplyConfiguration{
+				Kind:       util.StringPtr("Deployment"),
+				APIVersion: util.StringPtr("apps/v1"),
+				Name:       &name,
+			},
+			MaxReplicas: util.IntPtr(10),
+		},
+	}, metav1.ApplyOptions{
+		FieldManager: "controller",
+	}); err != nil {
 		return err
 	}
 
