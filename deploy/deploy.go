@@ -168,8 +168,16 @@ func (d *DeployService) Update(name string, newName string) error {
 }
 
 func (d *DeployService) Delete(name string) error {
-	err := d.clientset.CoreV1().Pods(d.namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	err := d.clientset.AppsV1().Deployments(d.namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {
+		return err
+	}
+
+	if err := d.clientset.CoreV1().Services(d.namespace).Delete(context.TODO(), name, metav1.DeleteOptions{}); err != nil {
+		return err
+	}
+
+	if err := d.clientset.AutoscalingV2().HorizontalPodAutoscalers(d.namespace).Delete(context.TODO(), name, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 
