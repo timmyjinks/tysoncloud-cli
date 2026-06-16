@@ -1,5 +1,8 @@
-prototyping tysoncloud-cli
+prototype tysoncloud-cli
 
-prototype will allow deployments using tysoncloud-cli which will create an instance of a project in kubernetes
+simple cli tool for homelab and tysoncloud infrastructure
 
-finished product will be integrated into TYSONCLOUD
+Features:
+- simple homelab tracking
+- pull and run current tysoncloud infra
+- deployment management
