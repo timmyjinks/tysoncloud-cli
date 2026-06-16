@@ -1,11 +1,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
+	"github.com/timmyjinks/tysoncloud-cli/util"
 )
 
 type Server struct {
@@ -15,7 +17,9 @@ type Server struct {
 	Addr        string
 }
 
+var serverName string
 var description string
+var addr string
 
 var addServerCmd = &cobra.Command{
 	Use:   "server [name] [address]",
@@ -27,6 +31,9 @@ var addServerCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 		addr := args[1]
+		if !util.IsAddr(addr) {
+			return errors.New("must match format x.x.x.x")
+		}
 		if err := app.store.AddServer(name, description, addr); err != nil {
 			return err
 		}
@@ -74,6 +81,62 @@ var getServerCmd = &cobra.Command{
 	},
 }
 
+var updateServerCmd = &cobra.Command{
+	Use:               "server [name]",
+	Short:             "update server resource",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: getServerComplete,
+	Annotations: map[string]string{
+		"database": "true",
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name := args[0]
+
+		server, err := app.store.GetServerByName(name)
+		if err != nil {
+			return err
+		}
+
+		if serverName == "" {
+			serverName = server.Name
+		}
+
+		if description == "" {
+			description = server.Description
+		}
+
+		if addr == "" {
+			addr = server.Addr
+		}
+
+		if err := app.store.UpdateServer(serverName, description, addr); err != nil {
+			return err
+		}
+		return nil
+	},
+}
+
+var deleteServerCmd = &cobra.Command{
+	Use:               "server [name]",
+	Short:             "delete server resource",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: getServerComplete,
+	Annotations: map[string]string{
+		"database": "true",
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name := args[0]
+		err := app.store.DeleteServer(name)
+		if err != nil {
+			return err
+		}
+		return nil
+	},
+}
+
 func init() {
 	addServerCmd.Flags().StringVarP(&description, "description", "d", "", "description of server")
+	updateServerCmd.Flags().StringVarP(&serverName, "name", "n", "", "name of server")
+	updateServerCmd.Flags().StringVarP(&description, "description", "d", "", "description of server")
+	updateServerCmd.Flags().StringVarP(&addr, "addr", "a", "", "addr of server")
 }

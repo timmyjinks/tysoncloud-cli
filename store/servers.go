@@ -1,8 +1,6 @@
 package store
 
 import (
-	"errors"
-
 	"github.com/google/uuid"
 )
 
@@ -80,9 +78,17 @@ func (s *SQLStoreService) AddServer(name string, description string, addr string
 }
 
 func (s *SQLStoreService) UpdateServer(name string, description string, addr string) error {
-	return errors.New("Update Server not implemented")
+	_, err := s.db.Exec("UPDATE servers SET name = $1, description = $2, addr = $3", name, description, addr)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *SQLStoreService) DeleteServer(name string) error {
-	return errors.New("Delete Server not implemented")
+	_, err := s.db.Exec("DELETE FROM servers where name = $1", name)
+	if err != nil {
+		return err
+	}
+	return nil
 }

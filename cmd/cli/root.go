@@ -70,9 +70,11 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(getCmd)
 	rootCmd.AddCommand(pullCmd)
+	rootCmd.AddCommand(addCmd)
+	rootCmd.AddCommand(updateCmd)
+	rootCmd.AddCommand(deleteCmd)
 	rootCmd.AddCommand(migrateCmd)
 	rootCmd.AddCommand(logoutCmd)
 	rootCmd.AddCommand(loginCmd)
