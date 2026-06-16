@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/timmyjinks/tysoncloud-cli/store"
 	"github.com/timmyjinks/tysoncloud-cli/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -153,13 +154,13 @@ func (d *DeployService) Create(name string, image string, port int32) error {
 	return nil
 }
 
-func (d *DeployService) Update(name string, newName string) error {
-	err := d.Delete(name)
+func (d *DeployService) Update(deployment store.DeploymentTable, newName string) error {
+	err := d.Delete(deployment.Name)
 	if err != nil {
 		return err
 	}
 
-	err = d.Create(newName, "nginx", 3000)
+	err = d.Create(newName, deployment.Source, deployment.Port)
 	if err != nil {
 		return err
 	}
