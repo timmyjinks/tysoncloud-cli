@@ -11,4 +11,5 @@ var getCmd = &cobra.Command{
 
 func init() {
 	getCmd.AddCommand(getServerCmd)
+	getCmd.AddCommand(getDeploymentCmd)
 }

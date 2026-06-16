@@ -5,18 +5,20 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
-	"github.com/supabase-community/supabase-go"
 	"github.com/timmyjinks/tysoncloud-cli/db"
+	"github.com/timmyjinks/tysoncloud-cli/deploy"
 	"github.com/timmyjinks/tysoncloud-cli/store"
 )
 
 type App struct {
-	store *store.StoreService
-	sp    *supabase.Client
+	store *store.SQLStoreService
+	sp    *store.SupabaseStoreService
+	dsvc  *deploy.DeployService
 }
 
 var spURL = os.Getenv("SUPABASE_URL")
-var spKey = os.Getenv("SUPABASE_KEY")
+var spKey = os.Getenv("SUPABASE_API_KEY")
+var kubeConfig = os.Getenv("KUBECONFIG")
 
 var app *App = &App{}
 
@@ -41,11 +43,12 @@ var rootCmd = &cobra.Command{
 		}
 
 		if target.Annotations["supabase"] == "true" {
-			sp, err := supabase.NewClient(spURL, spKey, &supabase.ClientOptions{})
+			cli, err := db.NewSupabaseStorage(spURL, spKey)
 			if err != nil {
 				return err
 			}
-			app.sp = sp
+			spSvc := store.NewSupabaseStoreService(cli)
+			app.sp = spSvc
 		}
 
 		if target.Annotations["database"] == "true" {
@@ -53,8 +56,13 @@ var rootCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			app.store = store.NewStoreService(db)
+			app.store = store.NewSQLStoreService(db)
 
+		}
+
+		if target.Annotations["deploy"] == "true" {
+			dsvc := deploy.NewDeployService("tysoncloud", kubeConfig)
+			app.dsvc = dsvc
 		}
 
 		return nil
@@ -64,6 +72,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(getCmd)
+	rootCmd.AddCommand(pullCmd)
 	rootCmd.AddCommand(migrateCmd)
 	rootCmd.AddCommand(logoutCmd)
 	rootCmd.AddCommand(loginCmd)
