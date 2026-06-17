@@ -1,6 +1,9 @@
 package store
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/google/uuid"
 )
 
@@ -77,11 +80,45 @@ func (s *SQLStoreService) AddServer(name string, description string, addr string
 	return nil
 }
 
-func (s *SQLStoreService) UpdateServer(name string, description string, addr string) error {
-	_, err := s.db.Exec("UPDATE servers SET name = $1, description = $2, addr = $3", name, description, addr)
+func (s *SQLStoreService) UpdateServer(name string, newName string, description string, addr string) error {
+	updateStr := []string{}
+	args := []any{}
+	argPos := 1
+
+	if newName != "" {
+		updateStr = append(updateStr, fmt.Sprintf("name = $%d", argPos))
+		args = append(args, newName)
+		argPos++
+	}
+
+	if description != "" {
+		updateStr = append(updateStr, fmt.Sprintf("description = $%d", argPos))
+		args = append(args, description)
+		argPos++
+	}
+
+	if addr != "" {
+		updateStr = append(updateStr, fmt.Sprintf("addr = $%d", argPos))
+		args = append(args, addr)
+		argPos++
+	}
+
+	if len(updateStr) == 0 {
+		return nil
+	}
+
+	args = append(args, name)
+
+	query := fmt.Sprintf("UPDATE servers SET %s WHERE name = $%d", strings.Join(updateStr, ", "), argPos)
+
+	fmt.Println(query)
+	fmt.Println(args...)
+
+	_, err := s.db.Exec(query, args...)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 

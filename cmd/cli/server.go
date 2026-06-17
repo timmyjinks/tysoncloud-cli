@@ -17,7 +17,7 @@ type Server struct {
 	Addr        string
 }
 
-var serverName string
+var newName string
 var description string
 var addr string
 
@@ -91,25 +91,7 @@ var updateServerCmd = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
-
-		server, err := app.store.GetServerByName(name)
-		if err != nil {
-			return err
-		}
-
-		if serverName == "" {
-			serverName = server.Name
-		}
-
-		if description == "" {
-			description = server.Description
-		}
-
-		if addr == "" {
-			addr = server.Addr
-		}
-
-		if err := app.store.UpdateServer(serverName, description, addr); err != nil {
+		if err := app.store.UpdateServer(name, newName, description, addr); err != nil {
 			return err
 		}
 		return nil
@@ -135,7 +117,7 @@ var deleteServerCmd = &cobra.Command{
 
 func init() {
 	addServerCmd.Flags().StringVarP(&description, "description", "d", "", "description of server")
-	updateServerCmd.Flags().StringVarP(&serverName, "name", "n", "", "name of server")
+	updateServerCmd.Flags().StringVarP(&newName, "name", "n", "", "name of server")
 	updateServerCmd.Flags().StringVarP(&description, "description", "d", "", "description of server")
 	updateServerCmd.Flags().StringVarP(&addr, "addr", "a", "", "addr of server")
 }
