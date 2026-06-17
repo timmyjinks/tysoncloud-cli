@@ -6,6 +6,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
+	"github.com/timmyjinks/tysoncloud-cli/util"
 )
 
 type Server struct {
@@ -15,7 +16,9 @@ type Server struct {
 	Addr        string
 }
 
+var newName string
 var description string
+var addr string
 
 var addServerCmd = &cobra.Command{
 	Use:   "server [name] [address]",
@@ -27,6 +30,9 @@ var addServerCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 		addr := args[1]
+		if !util.IsAddr(addr) {
+			return fmt.Errorf("%s is not a valid IPv4 address\n", addr)
+		}
 		if err := app.store.AddServer(name, description, addr); err != nil {
 			return err
 		}
@@ -74,6 +80,46 @@ var getServerCmd = &cobra.Command{
 	},
 }
 
+var updateServerCmd = &cobra.Command{
+	Use:               "server [name]",
+	Short:             "update server resource",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: getServerComplete,
+	Annotations: map[string]string{
+		"database": "true",
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name := args[0]
+		if !util.IsAddr(addr) && addr != "" {
+			return fmt.Errorf("%s is not a valid IPv4 address\n", addr)
+		}
+		if err := app.store.UpdateServer(name, newName, description, addr); err != nil {
+			return err
+		}
+		return nil
+	},
+}
+
+var deleteServerCmd = &cobra.Command{
+	Use:               "server [name] ...",
+	Short:             "delete server resource",
+	Args:              cobra.MaximumNArgs(1),
+	ValidArgsFunction: getServerComplete,
+	Annotations: map[string]string{
+		"database": "true",
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := app.store.DeleteServer(args...)
+		if err != nil {
+			return err
+		}
+		return nil
+	},
+}
+
 func init() {
 	addServerCmd.Flags().StringVarP(&description, "description", "d", "", "description of server")
+	updateServerCmd.Flags().StringVarP(&newName, "name", "n", "", "name of server")
+	updateServerCmd.Flags().StringVarP(&description, "description", "d", "", "description of server")
+	updateServerCmd.Flags().StringVarP(&addr, "addr", "a", "", "addr of server")
 }

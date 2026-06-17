@@ -1,7 +1,8 @@
 package store
 
 import (
-	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -79,10 +80,73 @@ func (s *SQLStoreService) AddServer(name string, description string, addr string
 	return nil
 }
 
-func (s *SQLStoreService) UpdateServer(name string, description string, addr string) error {
-	return errors.New("Update Server not implemented")
+func (s *SQLStoreService) UpdateServer(name string, newName string, description string, addr string) error {
+	updateStr := []string{}
+	args := []any{}
+	argPos := 1
+
+	if newName != "" {
+		updateStr = append(updateStr, fmt.Sprintf("name = $%d", argPos))
+		args = append(args, newName)
+		argPos++
+	}
+
+	if description != "" {
+		updateStr = append(updateStr, fmt.Sprintf("description = $%d", argPos))
+		args = append(args, description)
+		argPos++
+	}
+
+	if addr != "" {
+		updateStr = append(updateStr, fmt.Sprintf("addr = $%d", argPos))
+		args = append(args, addr)
+		argPos++
+	}
+
+	if len(updateStr) == 0 {
+		return nil
+	}
+
+	args = append(args, name)
+
+	query := fmt.Sprintf("UPDATE servers SET %s WHERE name = $%d", strings.Join(updateStr, ", "), argPos)
+
+	res, err := s.db.Exec(query, args...)
+	if err != nil {
+		return err
+	}
+
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return fmt.Errorf("server %q not found", name)
+	}
+
+	return nil
 }
 
-func (s *SQLStoreService) DeleteServer(name string) error {
-	return errors.New("Delete Server not implemented")
+func (s *SQLStoreService) DeleteServer(names ...string) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	for _, name := range names {
+		res, err := tx.Exec("DELETE FROM servers where name = $1", name)
+		if err != nil {
+			return err
+		}
+		affected, err := res.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if affected == 0 {
+			return fmt.Errorf("server %q not found", name)
+		}
+	}
+
+	return tx.Commit()
 }
