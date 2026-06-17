@@ -123,11 +123,25 @@ func (s *SQLStoreService) UpdateServer(name string, newName string, description 
 }
 
 func (s *SQLStoreService) DeleteServer(names ...string) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
 	for _, name := range names {
-		_, err := s.db.Exec("DELETE FROM servers where name = $1", name)
+		res, err := tx.Exec("DELETE FROM servers where name = $1", name)
 		if err != nil {
 			return err
 		}
+		affected, err := res.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if affected == 0 {
+			return fmt.Errorf("server %q not found", name)
+		}
 	}
-	return nil
+
+	return tx.Commit()
 }

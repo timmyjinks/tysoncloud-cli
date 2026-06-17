@@ -101,7 +101,7 @@ var updateServerCmd = &cobra.Command{
 var deleteServerCmd = &cobra.Command{
 	Use:               "server [name] ...",
 	Short:             "delete server resource",
-	Args:              cobra.ArbitraryArgs,
+	Args:              cobra.MaximumNArgs(1),
 	ValidArgsFunction: getServerComplete,
 	Annotations: map[string]string{
 		"database": "true",
