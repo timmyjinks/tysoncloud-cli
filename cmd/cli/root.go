@@ -75,7 +75,7 @@ func init() {
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(updateCmd)
 	rootCmd.AddCommand(deleteCmd)
-	rootCmd.AddCommand(migrateCmd)
-	rootCmd.AddCommand(logoutCmd)
-	rootCmd.AddCommand(loginCmd)
+	// rootCmd.AddCommand(migrateCmd)
+	// rootCmd.AddCommand(logoutCmd)
+	// rootCmd.AddCommand(loginCmd)
 }
