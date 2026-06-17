@@ -7,6 +7,8 @@ import (
 	"github.com/timmyjinks/tysoncloud-cli/store"
 	"github.com/timmyjinks/tysoncloud-cli/util"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	appsv1apply "k8s.io/client-go/applyconfigurations/apps/v1"
@@ -82,6 +84,13 @@ func (d *DeployService) Create(name string, image string, port int32) error {
 						{
 							Name:  &name,
 							Image: &image,
+							Resources: &appcorev1.ResourceRequirementsApplyConfiguration{
+								Limits: &corev1.ResourceList{
+									v1.ResourceCPU:    resource.MustParse("500m"),
+									v1.ResourceMemory: resource.MustParse("128Mi"),
+								},
+								Requests: &corev1.ResourceList{},
+							},
 							Ports: []appcorev1.ContainerPortApplyConfiguration{
 								{
 									Protocol:      (*corev1.Protocol)(util.StringPtr(string(corev1.ProtocolTCP))),
