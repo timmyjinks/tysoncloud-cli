@@ -1,8 +1,7 @@
 prototype tysoncloud-cli
 
-simple cli tool for homelab and tysoncloud infrastructure
+simple cli tool for homelab and tysoncloud infrastructure management
 
 Features:
-- simple homelab tracking
+- homelab and tysoncloud deployment management
 - pull and run current tysoncloud infra
-- deployment management
