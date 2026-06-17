@@ -13,7 +13,7 @@ import (
 
 var loginCmd = &cobra.Command{
 	Use:   "login",
-	Short: "login of tysoncloud account",
+	Short: "sign into tysoncloud account",
 	Args:  cobra.ArbitraryArgs,
 	Run:   loginRun,
 }
