@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"text/tabwriter"
@@ -32,7 +31,7 @@ var addServerCmd = &cobra.Command{
 		name := args[0]
 		addr := args[1]
 		if !util.IsAddr(addr) {
-			return errors.New("must match format x.x.x.x")
+			return fmt.Errorf("%s is not a valid IPv4 address\n", addr)
 		}
 		if err := app.store.AddServer(name, description, addr); err != nil {
 			return err
@@ -91,6 +90,9 @@ var updateServerCmd = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
+		if !util.IsAddr(addr) && addr != "" {
+			return fmt.Errorf("%s is not a valid IPv4 address\n", addr)
+		}
 		if err := app.store.UpdateServer(name, newName, description, addr); err != nil {
 			return err
 		}
