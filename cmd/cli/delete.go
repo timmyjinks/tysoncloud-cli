@@ -10,4 +10,3 @@ var deleteCmd = &cobra.Command{
 func init() {
 	deleteCmd.AddCommand(deleteServerCmd)
 }
-

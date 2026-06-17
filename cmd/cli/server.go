@@ -117,16 +117,15 @@ var updateServerCmd = &cobra.Command{
 }
 
 var deleteServerCmd = &cobra.Command{
-	Use:               "server [name]",
+	Use:               "server [name] ...",
 	Short:             "delete server resource",
-	Args:              cobra.ExactArgs(1),
+	Args:              cobra.ArbitraryArgs,
 	ValidArgsFunction: getServerComplete,
 	Annotations: map[string]string{
 		"database": "true",
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name := args[0]
-		err := app.store.DeleteServer(name)
+		err := app.store.DeleteServer(args...)
 		if err != nil {
 			return err
 		}

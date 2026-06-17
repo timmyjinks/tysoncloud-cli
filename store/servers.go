@@ -85,10 +85,12 @@ func (s *SQLStoreService) UpdateServer(name string, description string, addr str
 	return nil
 }
 
-func (s *SQLStoreService) DeleteServer(name string) error {
-	_, err := s.db.Exec("DELETE FROM servers where name = $1", name)
-	if err != nil {
-		return err
+func (s *SQLStoreService) DeleteServer(names ...string) error {
+	for _, name := range names {
+		_, err := s.db.Exec("DELETE FROM servers where name = $1", name)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
