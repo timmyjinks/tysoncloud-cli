@@ -111,9 +111,6 @@ func (s *SQLStoreService) UpdateServer(name string, newName string, description 
 
 	query := fmt.Sprintf("UPDATE servers SET %s WHERE name = $%d", strings.Join(updateStr, ", "), argPos)
 
-	fmt.Println(query)
-	fmt.Println(args...)
-
 	_, err := s.db.Exec(query, args...)
 	if err != nil {
 		return err
