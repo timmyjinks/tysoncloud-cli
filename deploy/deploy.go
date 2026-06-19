@@ -6,6 +6,7 @@ import (
 
 	"github.com/timmyjinks/tysoncloud-cli/store"
 	"github.com/timmyjinks/tysoncloud-cli/util"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -71,7 +72,6 @@ func (d *DeployService) Create(name string, image string, port int32) error {
 					"app": name,
 				},
 			},
-			Replicas: &replicas,
 			Template: &appcorev1.PodTemplateSpecApplyConfiguration{
 				ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
 					Name: &name,
@@ -89,7 +89,9 @@ func (d *DeployService) Create(name string, image string, port int32) error {
 									v1.ResourceCPU:    resource.MustParse("500m"),
 									v1.ResourceMemory: resource.MustParse("128Mi"),
 								},
-								Requests: &corev1.ResourceList{},
+								Requests: &corev1.ResourceList{
+									v1.ResourceCPU: resource.MustParse("100m"),
+								},
 							},
 							Ports: []appcorev1.ContainerPortApplyConfiguration{
 								{
@@ -152,7 +154,20 @@ func (d *DeployService) Create(name string, image string, port int32) error {
 				APIVersion: util.StringPtr("apps/v1"),
 				Name:       &name,
 			},
+			MinReplicas: util.IntPtr(1),
 			MaxReplicas: util.IntPtr(10),
+			Metrics: []v2.MetricSpecApplyConfiguration{
+				{
+					Type: (*autoscalingv2.MetricSourceType)(util.StringPtr(string(autoscalingv2.ResourceMetricSourceType))),
+					Resource: &v2.ResourceMetricSourceApplyConfiguration{
+						Name: (*corev1.ResourceName)(util.StringPtr(string(corev1.ResourceCPU))),
+						Target: &v2.MetricTargetApplyConfiguration{
+							Type:               (*autoscalingv2.MetricTargetType)(util.StringPtr(string(autoscalingv2.UtilizationMetricType))),
+							AverageUtilization: util.IntPtr(50),
+						},
+					},
+				},
+			},
 		},
 	}, metav1.ApplyOptions{
 		FieldManager: "controller",
