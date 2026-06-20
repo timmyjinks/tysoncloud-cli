@@ -42,11 +42,26 @@ func (d *DeployService) Get() {
 }
 
 func (d *DeployService) Create(deployment Deployment) error {
-	d.ensureNamespace(deployment.Namespace)
-	d.createDeployment(deployment)
-	d.createService(deployment)
-	d.createHPA(deployment)
-	d.createHTTPRoute(deployment)
+	err := d.ensureNamespace(deployment.Namespace)
+	if err != nil {
+		return err
+	}
+
+	if err := d.createDeployment(deployment); err != nil {
+		return err
+	}
+
+	if err := d.createService(deployment); err != nil {
+		return err
+	}
+
+	if err := d.createHPA(deployment); err != nil {
+		return err
+	}
+
+	if err := d.createHTTPRoute(deployment); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -57,7 +72,12 @@ func (d *DeployService) Update(deployment Deployment, newName string) error {
 		return err
 	}
 
-	err = d.Create(deployment)
+	err = d.Create(Deployment{
+		Namespace: deployment.Namespace,
+		Name:      newName,
+		Image:     deployment.Image,
+		Port:      deployment.Port,
+	})
 	if err != nil {
 		return err
 	}
@@ -76,6 +96,10 @@ func (d *DeployService) Delete(deployment Deployment) error {
 	}
 
 	if err := d.clientset.AutoscalingV2().HorizontalPodAutoscalers(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
+		return err
+	}
+
+	if err := d.gatewayClient.GatewayV1().HTTPRoutes(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 

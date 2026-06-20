@@ -6,7 +6,6 @@ import (
 	"github.com/timmyjinks/tysoncloud-cli/util"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -55,11 +54,11 @@ func (d *DeployService) createDeployment(deployment Deployment) error {
 							Image: &deployment.Image,
 							Resources: &appcorev1.ResourceRequirementsApplyConfiguration{
 								Limits: &corev1.ResourceList{
-									v1.ResourceCPU:    resource.MustParse("500m"),
-									v1.ResourceMemory: resource.MustParse("128Mi"),
+									corev1.ResourceCPU:    resource.MustParse("500m"),
+									corev1.ResourceMemory: resource.MustParse("128Mi"),
 								},
 								Requests: &corev1.ResourceList{
-									v1.ResourceCPU: resource.MustParse("100m"),
+									corev1.ResourceCPU: resource.MustParse("100m"),
 								},
 							},
 							Ports: []appcorev1.ContainerPortApplyConfiguration{
