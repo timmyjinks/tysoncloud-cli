@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/spf13/cobra"
+	"github.com/timmyjinks/tysoncloud-cli/deploy"
 )
 
 var pullCmd = &cobra.Command{
@@ -21,7 +22,12 @@ var pullCmd = &cobra.Command{
 		}
 		for _, deployment := range deployments {
 			if deployment.Type == "docker" {
-				err := app.dsvc.Create(deployment.Name, deployment.Source, deployment.Port)
+				err := app.dsvc.Create(deploy.Deployment{
+					Namespace: deployment.UserID,
+					Name:      deployment.Name,
+					Image:     deployment.Source,
+					Port:      deployment.Port,
+				})
 				if err != nil {
 					log.Println(err)
 				}

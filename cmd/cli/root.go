@@ -61,7 +61,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		if target.Annotations["deploy"] == "true" {
-			dsvc := deploy.NewDeployService("tysoncloud", kubeConfig)
+			dsvc := deploy.NewDeployService(kubeConfig)
 			app.dsvc = dsvc
 		}
 
