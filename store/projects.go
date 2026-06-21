@@ -11,6 +11,7 @@ type ProjectsTable struct {
 	ID           string    `json:"id,omitempty"`
 	DeploymentId string    `json:"deployment_id,omitempty"`
 	Namespace    string    `json:"namespace,omitempty"`
+	Name         string    `json:"name,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 

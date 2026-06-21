@@ -10,7 +10,6 @@ import (
 type DeploymentTable struct {
 	ID        string    `json:"id,omitempty"`
 	UserID    string    `json:"user_id,omitempty"`
-	Name      string    `json:"name,omitempty"`
 	URL       string    `json:"url,omitempty"`
 	Status    string    `json:"status,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
