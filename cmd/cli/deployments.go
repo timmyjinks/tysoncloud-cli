@@ -32,7 +32,7 @@ var deleteDeploymentCmd = &cobra.Command{
 	Annotations: map[string]string{
 		"deploy": "true",
 	},
-	Args: cobra.MaximumNArgs(2),
+	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		userId := args[0]
 		name := args[1]
