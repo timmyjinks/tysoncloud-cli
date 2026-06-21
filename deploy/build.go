@@ -18,6 +18,8 @@ import (
 type Deployment struct {
 	Namespace string
 	Name      string
+	Hostname  string
+	Env       map[string][]byte
 	Image     string
 	Port      int32
 }
@@ -32,6 +34,9 @@ func (d *DeployService) createDeployment(deployment Deployment) error {
 			Name: &deployment.Name,
 			Labels: map[string]string{
 				"app": deployment.Name,
+			},
+			Annotations: map[string]string{
+				"reloader.stakater.com/auto": "true",
 			},
 		},
 		Spec: &appsv1apply.DeploymentSpecApplyConfiguration{
@@ -66,6 +71,15 @@ func (d *DeployService) createDeployment(deployment Deployment) error {
 								{
 									Protocol:      (*corev1.Protocol)(util.StringPtr(string(corev1.ProtocolTCP))),
 									ContainerPort: &deployment.Port,
+								},
+							},
+							EnvFrom: []appcorev1.EnvFromSourceApplyConfiguration{
+								{
+									SecretRef: &appcorev1.SecretEnvSourceApplyConfiguration{
+										LocalObjectReferenceApplyConfiguration: appcorev1.LocalObjectReferenceApplyConfiguration{
+											Name: &deployment.Name,
+										},
+									},
 								},
 							},
 						},
@@ -145,6 +159,26 @@ func (d *DeployService) createHPA(deployment Deployment) error {
 				},
 			},
 		},
+	}, metav1.ApplyOptions{
+		FieldManager: "controller",
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *DeployService) createSecret(deployment Deployment) error {
+	_, err := d.clientset.CoreV1().Secrets(deployment.Namespace).Apply(context.TODO(), &appcorev1.SecretApplyConfiguration{
+		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
+			Kind:       util.StringPtr("Secret"),
+			APIVersion: util.StringPtr("v1"),
+		},
+		ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
+			Namespace: &deployment.Namespace,
+			Name:      &deployment.Name,
+		},
+		Data: deployment.Env,
 	}, metav1.ApplyOptions{
 		FieldManager: "controller",
 	})

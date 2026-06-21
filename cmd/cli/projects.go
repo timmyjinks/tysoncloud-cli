@@ -4,43 +4,38 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/timmyjinks/tysoncloud-cli/deploy"
 )
 
 var getDeploymentCmd = &cobra.Command{
-	Use:   "deployments",
+	Use:   "projects",
 	Short: "get deployments",
 	Annotations: map[string]string{
 		"supabase": "true",
 	},
-	Args: cobra.MaximumNArgs(1),
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		deployments, err := app.sp.GetDeployments()
+		deployments, err := app.sp.GetProjects()
 		if err != nil {
 			return err
 		}
 
 		for _, deployment := range deployments {
-			fmt.Printf("%s %s %s\n", deployment.ID, deployment.UserID, deployment.Name)
+			fmt.Printf("%s %s\n", deployment.ID, deployment.Namespace)
 		}
 		return nil
 	},
 }
 
 var deleteDeploymentCmd = &cobra.Command{
-	Use:   "deployment [namespace] [name]",
+	Use:   "deployment [userId] [name]",
 	Short: "get deployments",
 	Annotations: map[string]string{
 		"deploy": "true",
 	},
-	Args: cobra.MaximumNArgs(2),
+	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		namespace := args[0]
-		name := args[1]
-		err := app.dsvc.Delete(deploy.Deployment{
-			Namespace: namespace,
-			Name:      name,
-		})
+		err := app.dsvc.Delete(namespace)
 		if err != nil {
 			return err
 		}

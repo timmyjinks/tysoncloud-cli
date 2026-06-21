@@ -41,17 +41,51 @@ func (d *DeployService) Get() {
 	}
 }
 
+func (d *DeployService) BatchCreate(deployments ...Deployment) error {
+	for _, deployment := range deployments {
+		err := d.ensureNamespace(deployment.Namespace)
+		if err != nil {
+			return err
+		}
+
+		if err := d.createSecret(deployment); err != nil {
+			return err
+		}
+
+		if err := d.createService(deployment); err != nil {
+			return err
+		}
+
+		if err := d.createDeployment(deployment); err != nil {
+			return err
+		}
+
+		if err := d.createHPA(deployment); err != nil {
+			return err
+		}
+
+		if err := d.createHTTPRoute(deployment); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (d *DeployService) Create(deployment Deployment) error {
 	err := d.ensureNamespace(deployment.Namespace)
 	if err != nil {
 		return err
 	}
 
-	if err := d.createDeployment(deployment); err != nil {
+	if err := d.createService(deployment); err != nil {
 		return err
 	}
 
-	if err := d.createService(deployment); err != nil {
+	if err := d.createSecret(deployment); err != nil {
+		return err
+	}
+
+	if err := d.createDeployment(deployment); err != nil {
 		return err
 	}
 
@@ -67,7 +101,7 @@ func (d *DeployService) Create(deployment Deployment) error {
 }
 
 func (d *DeployService) Update(deployment Deployment, newName string) error {
-	err := d.Delete(deployment)
+	err := d.Delete(deployment.Namespace)
 	if err != nil {
 		return err
 	}
@@ -85,23 +119,6 @@ func (d *DeployService) Update(deployment Deployment, newName string) error {
 	return nil
 }
 
-func (d *DeployService) Delete(deployment Deployment) error {
-	err := d.clientset.AppsV1().Deployments(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{})
-	if err != nil {
-		return err
-	}
-
-	if err := d.clientset.CoreV1().Services(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
-		return err
-	}
-
-	if err := d.clientset.AutoscalingV2().HorizontalPodAutoscalers(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
-		return err
-	}
-
-	if err := d.gatewayClient.GatewayV1().HTTPRoutes(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
-		return err
-	}
-
-	return nil
+func (d *DeployService) Delete(namespace string) error {
+	return d.clientset.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
 }
