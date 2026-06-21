@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/spf13/cobra"
 	"github.com/timmyjinks/tysoncloud-cli/deploy"
+	"github.com/timmyjinks/tysoncloud-cli/util"
 )
 
 var pullCmd = &cobra.Command{
@@ -26,13 +27,21 @@ var pullCmd = &cobra.Command{
 			}
 
 			for _, service := range services {
-				err := app.dsvc.Create(deploy.Deployment{
+				environments, err := app.sp.GetEnvironments(service.ID)
+				if err != nil {
+					return err
+				}
+
+				environmentsMap := util.ToEnvString(environments)
+
+				if err := app.dsvc.Create(deploy.Deployment{
 					Namespace: project.Namespace,
-					Name:      service.Name,
+					Name:      service.K8sName,
+					Hostname:  service.Hostname,
+					Env:       environmentsMap,
 					Image:     service.Image,
 					Port:      service.Port,
-				})
-				if err != nil {
+				}); err != nil {
 					return err
 				}
 			}
