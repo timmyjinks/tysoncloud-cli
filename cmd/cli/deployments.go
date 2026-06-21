@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/timmyjinks/tysoncloud-cli/deploy"
 )
 
 var getDeploymentCmd = &cobra.Command{
@@ -28,19 +27,16 @@ var getDeploymentCmd = &cobra.Command{
 }
 
 var deleteDeploymentCmd = &cobra.Command{
-	Use:   "deployment [namespace] [name]",
+	Use:   "deployment [userId] [name]",
 	Short: "get deployments",
 	Annotations: map[string]string{
 		"deploy": "true",
 	},
 	Args: cobra.MaximumNArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		namespace := args[0]
+		userId := args[0]
 		name := args[1]
-		err := app.dsvc.Delete(deploy.Deployment{
-			Namespace: namespace,
-			Name:      name,
-		})
+		err := app.dsvc.Delete(userId + "-" + name)
 		if err != nil {
 			return err
 		}

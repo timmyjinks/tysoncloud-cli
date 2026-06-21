@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/spf13/cobra"
 	"github.com/timmyjinks/tysoncloud-cli/deploy"
 )
@@ -16,20 +14,26 @@ var pullCmd = &cobra.Command{
 	},
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		deployments, err := app.sp.GetDeployments()
+		projects, err := app.sp.GetProjects()
 		if err != nil {
 			return err
 		}
-		for _, deployment := range deployments {
-			if deployment.Type == "docker" {
+
+		for _, project := range projects {
+			services, err := app.sp.GetServicesByID(project.ID)
+			if err != nil {
+				return err
+			}
+
+			for _, service := range services {
 				err := app.dsvc.Create(deploy.Deployment{
-					Namespace: deployment.UserID,
-					Name:      deployment.Name,
-					Image:     deployment.Source,
-					Port:      deployment.Port,
+					Namespace: project.Namespace,
+					Name:      service.Name,
+					Image:     service.Image,
+					Port:      service.Port,
 				})
 				if err != nil {
-					log.Println(err)
+					return err
 				}
 			}
 		}

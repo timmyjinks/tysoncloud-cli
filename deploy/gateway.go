@@ -31,7 +31,7 @@ func (d *DeployService) createHTTPRoute(deployment Deployment) error {
 				},
 			},
 			Hostnames: []gatewayv1.Hostname{
-				gatewayv1.Hostname(fmt.Sprintf("%s-%s.tysoncloud.tysonjenkins.dev", deployment.Namespace, deployment.Name)),
+				gatewayv1.Hostname(fmt.Sprintf("%s.tysoncloud.tysonjenkins.dev", deployment.Namespace)),
 			},
 			Rules: []v1.HTTPRouteRuleApplyConfiguration{
 				{
