@@ -2,7 +2,6 @@ package deploy
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/timmyjinks/tysoncloud-cli/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,7 +30,7 @@ func (d *DeployService) createHTTPRoute(deployment Deployment) error {
 				},
 			},
 			Hostnames: []gatewayv1.Hostname{
-				gatewayv1.Hostname(fmt.Sprintf("%s-%s.tysoncloud.tysonjenkins.dev", deployment.Namespace, deployment.Name)),
+				gatewayv1.Hostname(deployment.Hostname),
 			},
 			Rules: []v1.HTTPRouteRuleApplyConfiguration{
 				{

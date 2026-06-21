@@ -8,11 +8,11 @@ import (
 )
 
 type ProjectsTable struct {
-	ID           string    `json:"id,omitempty"`
-	DeploymentId string    `json:"deployment_id,omitempty"`
-	Namespace    string    `json:"namespace,omitempty"`
-	Name         string    `json:"name,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID        string    `json:"id,omitempty"`
+	UserId    string    `json:"user_id,omitempty"`
+	Namespace string    `json:"namespace,omitempty"`
+	Name      string    `json:"name,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (s *SupabaseStoreService) GetProjects() ([]ProjectsTable, error) {
