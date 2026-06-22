@@ -17,3 +17,6 @@ jobs:
           go-version: ${{ matrix.go-version }}
       - name: Build Go project
         run: go build ./cmd/cli
+
+      - name: Test Go project
+        run: go test ./...
