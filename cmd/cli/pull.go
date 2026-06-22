@@ -49,10 +49,18 @@ var pullCmd = &cobra.Command{
 
 		for _, project := range projects {
 			fmt.Fprintf(&builder, "%s\n", project.Namespace)
-		}
+			for _, service := range services {
+				if service.ProjectId == project.ID {
+					environments, err := app.sp.GetEnvironments(service.ID)
+					if err != nil {
+						return err
+					}
 
-		for _, service := range services {
-			fmt.Fprintf(&builder, "%s %s\n", service.ResourceName, "proj-"+service.ProjectId)
+					enironmentString := util.ToEnvString(environments)
+
+					fmt.Fprintf(&builder, "%s %s %d %s %s\n", service.ResourceName, project.Namespace, service.Port, service.Image, enironmentString)
+				}
+			}
 		}
 
 		removed, added := util.CompareDiff(diffFile, builder.String())
@@ -91,10 +99,15 @@ var pullCmd = &cobra.Command{
 
 			switch prefix {
 			case "proj":
-				app.dsvc.CreateProject(deploy.Deployment{Namespace: id})
+				if err := app.dsvc.CreateProject(deploy.Deployment{Namespace: id}); err != nil {
+					return err
+				}
 			case "svc":
 				service := strings.Split(id, " ")
 				name := service[0]
+
+				serviceParts := strings.Fields(id)
+				name, namespace := serviceParts[0], serviceParts[1]
 
 				for _, service := range services {
 					if service.ResourceName == name {
@@ -106,8 +119,8 @@ var pullCmd = &cobra.Command{
 						environmentsString := util.ToEnvString(environments)
 
 						if err := app.dsvc.Create(deploy.Deployment{
-							Namespace: "proj-" + service.ProjectId,
-							Name:      service.ResourceName,
+							Namespace: namespace,
+							Name:      name,
 							Hostname:  service.PublicDomain,
 							Env:       environmentsString,
 							Image:     service.Image,
