@@ -78,9 +78,8 @@ var pullCmd = &cobra.Command{
 					return err
 				}
 			case "svc":
-				service := strings.Split(id, " ")
-				name := service[0]
-				namespace := service[1]
+				serviceParts := strings.Fields(id)
+				name, namespace := serviceParts[0], serviceParts[1]
 
 				err := app.dsvc.DeleteService(deploy.Deployment{
 					Name:      name,
@@ -103,9 +102,6 @@ var pullCmd = &cobra.Command{
 					return err
 				}
 			case "svc":
-				service := strings.Split(id, " ")
-				name := service[0]
-
 				serviceParts := strings.Fields(id)
 				name, namespace := serviceParts[0], serviceParts[1]
 
