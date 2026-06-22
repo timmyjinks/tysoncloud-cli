@@ -140,11 +140,11 @@ var pullCmd = &cobra.Command{
 }
 
 func printDiff(added, removed []string) {
-	for _, id := range added {
-		fmt.Println("+", id)
-	}
-
 	for _, id := range removed {
 		fmt.Println("-", id)
+	}
+
+	for _, id := range added {
+		fmt.Println("+", id)
 	}
 }
