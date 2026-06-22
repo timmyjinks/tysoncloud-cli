@@ -77,3 +77,15 @@ func ReadFile(filename string) (string, error) {
 
 	return lines.String(), scanner.Err()
 }
+
+func WriteFile(content, filename string) error {
+	file, err := os.OpenFile(filename, os.O_WRONLY, 0755)
+	if err != nil {
+		return err
+	}
+
+	if _, err := file.WriteString(content); err != nil {
+		return err
+	}
+	return nil
+}
