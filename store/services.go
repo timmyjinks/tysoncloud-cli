@@ -8,16 +8,17 @@ import (
 )
 
 type ServicesTable struct {
-	ID        string    `json:"id,omitempty"`
-	ProjectId string    `json:"project_id,omitempty"`
-	Name      string    `json:"name,omitempty"`
-	K8sName   string    `json:"k8s_name,omitempty"`
-	Status    string    `json:"status,omitempty"`
-	URL       string    `json:"url,omitempty"`
-	Hostname  string    `json:"hostname,omitempty"`
-	Port      int32     `json:"port,omitempty"`
-	Image     string    `json:"image,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
+	ID            string    `json:"id,omitempty"`
+	ProjectId     string    `json:"project_id,omitempty"`
+	Name          string    `json:"name,omitempty"`
+	ResourceName  string    `json:"resource_name,omitempty"`
+	Status        string    `json:"status,omitempty"`
+	URL           string    `json:"url,omitempty"`
+	PublicDomain  string    `json:"public_domain,omitempty"`
+	PrivateDomain string    `json:"private_domain,omitempty"`
+	Port          int32     `json:"port,omitempty"`
+	Image         string    `json:"image,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 func (s *SupabaseStoreService) GetServicesByID(project_id string) ([]ServicesTable, error) {

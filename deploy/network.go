@@ -1,0 +1,76 @@
+package deploy
+
+import (
+	"context"
+
+	"github.com/timmyjinks/tysoncloud-cli/util"
+	corev1 "k8s.io/api/core/v1"
+
+	netv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	appmetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/networking/v1"
+)
+
+func (d *DeployService) ensureNetworkPolicy(deployment Deployment) error {
+	d.clientset.NetworkingV1().NetworkPolicies(deployment.Namespace).Apply(context.TODO(), &v1.NetworkPolicyApplyConfiguration{
+		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
+			Kind:       util.StringPtr("NetworkPolicy"),
+			APIVersion: util.StringPtr("networking.k8s.io/v1"),
+		},
+		ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
+			Name:      &deployment.Namespace,
+			Namespace: &deployment.Namespace,
+		},
+		Spec: &v1.NetworkPolicySpecApplyConfiguration{
+			PolicyTypes: []netv1.PolicyType{
+				"Ingress",
+				"Egress",
+			},
+			Ingress: []v1.NetworkPolicyIngressRuleApplyConfiguration{
+				{
+					From: []v1.NetworkPolicyPeerApplyConfiguration{
+						{
+							PodSelector: &appmetav1.LabelSelectorApplyConfiguration{},
+						},
+						{
+							NamespaceSelector: &appmetav1.LabelSelectorApplyConfiguration{
+								MatchLabels: map[string]string{
+									"kubernetes.io/metadata.name": "tc-system",
+								},
+							},
+						},
+					},
+				},
+			},
+			Egress: []v1.NetworkPolicyEgressRuleApplyConfiguration{
+				{
+					To: []v1.NetworkPolicyPeerApplyConfiguration{
+						{
+							PodSelector: &appmetav1.LabelSelectorApplyConfiguration{},
+						},
+						{
+							NamespaceSelector: &appmetav1.LabelSelectorApplyConfiguration{
+								MatchLabels: map[string]string{
+									"kubernetes.io/metadata.name": "kube-system",
+								},
+							},
+						},
+					},
+					Ports: []v1.NetworkPolicyPortApplyConfiguration{
+						{
+							Protocol: (*corev1.Protocol)(util.StringPtr("UDP")),
+							Port:     &intstr.IntOrString{IntVal: 53},
+						},
+						{
+							Protocol: (*corev1.Protocol)(util.StringPtr("TCP")),
+							Port:     &intstr.IntOrString{IntVal: 53},
+						},
+					},
+				},
+			},
+		},
+	}, metav1.ApplyOptions{FieldManager: "controller"})
+	return nil
+}
