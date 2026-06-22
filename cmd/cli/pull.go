@@ -12,7 +12,7 @@ import (
 	"github.com/timmyjinks/tysoncloud-cli/util"
 )
 
-var projectDir = fmt.Sprintf("%s/.local/share/tysoncloud", os.Getenv("HOME"))
+var projectDir = fmt.Sprintf("%s/.local/share/tysoncloud", util.GetEnv("HOME", "./diff.txt"))
 var diffFile = path.Join(projectDir, "diff.txt")
 
 var pullCmd = &cobra.Command{
@@ -26,7 +26,7 @@ var pullCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var builder strings.Builder
 		if _, err := os.Stat(projectDir); errors.Is(err, os.ErrNotExist) {
-			err := os.Mkdir(projectDir, 0744)
+			err := os.MkdirAll(projectDir, 0755)
 			if err != nil {
 				return err
 			}

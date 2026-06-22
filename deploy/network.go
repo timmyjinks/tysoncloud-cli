@@ -14,7 +14,7 @@ import (
 )
 
 func (d *DeployService) ensureNetworkPolicy(deployment Deployment) error {
-	d.clientset.NetworkingV1().NetworkPolicies(deployment.Namespace).Apply(context.TODO(), &v1.NetworkPolicyApplyConfiguration{
+	_, err := d.clientset.NetworkingV1().NetworkPolicies(deployment.Namespace).Apply(context.TODO(), &v1.NetworkPolicyApplyConfiguration{
 		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
 			Kind:       util.StringPtr("NetworkPolicy"),
 			APIVersion: util.StringPtr("networking.k8s.io/v1"),
@@ -72,5 +72,8 @@ func (d *DeployService) ensureNetworkPolicy(deployment Deployment) error {
 			},
 		},
 	}, metav1.ApplyOptions{FieldManager: "controller"})
+	if err != nil {
+		return err
+	}
 	return nil
 }
