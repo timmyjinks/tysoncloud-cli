@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/timmyjinks/tysoncloud-cli/deploy"
+	"github.com/timmyjinks/tysoncloud-cli/store"
 	"github.com/timmyjinks/tysoncloud-cli/util"
 )
 
@@ -47,19 +48,29 @@ var pullCmd = &cobra.Command{
 			return err
 		}
 
+		servicesMap := make(map[string][]store.ServicesTable)
+		for _, service := range services {
+			servicesMap[service.ProjectId] = append(servicesMap[service.ProjectId], service)
+		}
+
+		environments, err := app.sp.GetEnvironments()
+		if err != nil {
+			return err
+		}
+
+		environmentsMap := make(map[string][]store.EnvironmentsTable)
+		for _, environment := range environments {
+			environmentsMap[environment.ServiceId] = append(environmentsMap[environment.ServiceId], environment)
+		}
+
 		for _, project := range projects {
 			fmt.Fprintf(&builder, "%s\n", project.Namespace)
+
+			services := servicesMap[project.ID]
 			for _, service := range services {
-				if service.ProjectId == project.ID {
-					environments, err := app.sp.GetEnvironments(service.ID)
-					if err != nil {
-						return err
-					}
-
-					environmentString := util.ToEnvString(environments)
-
-					fmt.Fprintf(&builder, "%s %s %d %s %s\n", service.ResourceName, project.Namespace, service.Port, service.Image, environmentString)
-				}
+				environment := environmentsMap[service.ID]
+				environmentString := util.ToEnvString(environment)
+				fmt.Fprintf(&builder, "%s %s %d %s %s\n", service.ResourceName, project.Namespace, service.Port, service.Image, environmentString)
 			}
 		}
 
@@ -93,12 +104,11 @@ var pullCmd = &cobra.Command{
 
 		for _, id := range added {
 			resource := strings.Split(id, "-")
-
 			prefix := resource[0]
 
 			switch prefix {
 			case "proj":
-				if err := app.dsvc.CreateProject(deploy.Deployment{Namespace: id}); err != nil {
+				if err := app.dsvc.CreateProject(id); err != nil {
 					return err
 				}
 			case "svc":
@@ -107,24 +117,19 @@ var pullCmd = &cobra.Command{
 
 				for _, service := range services {
 					if service.ResourceName == name {
-						environments, err := app.sp.GetEnvironments(service.ID)
-						if err != nil {
-							return err
-						}
-
-						environmentsString := util.ToEnvString(environments)
+						environment := environmentsMap[service.ID]
+						environmentString := util.ToEnvString(environment)
 
 						if err := app.dsvc.Create(deploy.Deployment{
 							Namespace: namespace,
 							Name:      name,
 							Hostname:  service.PublicDomain,
-							Env:       environmentsString,
+							Env:       environmentString,
 							Image:     service.Image,
 							Port:      service.Port,
 						}); err != nil {
 							return err
 						}
-
 					}
 				}
 			}
