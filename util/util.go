@@ -1,7 +1,10 @@
 package util
 
 import (
+	"bufio"
+	"os"
 	"regexp"
+	"strings"
 
 	"github.com/timmyjinks/tysoncloud-cli/store"
 )
@@ -23,4 +26,75 @@ func ToEnvString(envs []store.EnvironmentsTable) map[string][]byte {
 	}
 
 	return envsMap
+}
+
+func CompareDiff(file1, file2 string) (deletions []string, additions []string) {
+	oldSet := toSet(file1)
+	newSet := toSet(file2)
+
+	var removed []string
+	var added []string
+
+	for id := range oldSet {
+		if _, ok := newSet[id]; !ok {
+			removed = append(removed, id)
+		}
+	}
+
+	for id := range newSet {
+		if _, ok := oldSet[id]; !ok {
+			added = append(added, id)
+		}
+	}
+
+	return removed, added
+}
+
+func toSet(s string) map[string]struct{} {
+	set := make(map[string]struct{})
+	scanner := bufio.NewScanner(strings.NewReader(s))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line != "" {
+			set[line] = struct{}{}
+		}
+	}
+	return set
+}
+
+func ReadFile(filename string) (string, error) {
+	var lines strings.Builder
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_RDONLY, 0600)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines.WriteString(scanner.Text() + "\n")
+	}
+
+	return lines.String(), scanner.Err()
+}
+
+func WriteFile(content, filename string) error {
+	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	if _, err := file.WriteString(content); err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetEnv(key, fallback string) string {
+	env := os.Getenv(key)
+	if env == "" {
+		return fallback
+	}
+	return env
 }
