@@ -50,6 +50,10 @@ func (d *DeployService) ensureNetworkPolicy(deployment Deployment) error {
 						{
 							PodSelector: &appmetav1.LabelSelectorApplyConfiguration{},
 						},
+					},
+				},
+				{
+					To: []v1.NetworkPolicyPeerApplyConfiguration{
 						{
 							NamespaceSelector: &appmetav1.LabelSelectorApplyConfiguration{
 								MatchLabels: map[string]string{
@@ -66,6 +70,18 @@ func (d *DeployService) ensureNetworkPolicy(deployment Deployment) error {
 						{
 							Protocol: (*corev1.Protocol)(util.StringPtr("TCP")),
 							Port:     &intstr.IntOrString{IntVal: 53},
+						},
+					},
+				},
+				{
+					Ports: []v1.NetworkPolicyPortApplyConfiguration{
+						{
+							Protocol: (*corev1.Protocol)(util.StringPtr("TCP")),
+							Port:     &intstr.IntOrString{IntVal: 80},
+						},
+						{
+							Protocol: (*corev1.Protocol)(util.StringPtr("TCP")),
+							Port:     &intstr.IntOrString{IntVal: 443},
 						},
 					},
 				},

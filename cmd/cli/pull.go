@@ -66,8 +66,8 @@ var pullCmd = &cobra.Command{
 		for _, project := range projects {
 			fmt.Fprintf(&builder, "%s\n", project.Namespace)
 
-			services := servicesMap[project.ID]
-			for _, service := range services {
+			serviceProject := servicesMap[project.ID]
+			for _, service := range serviceProject {
 				environment := environmentsMap[service.ID]
 				environmentString := util.ToEnvString(environment)
 				fmt.Fprintf(&builder, "%s %s %d %s %s\n", service.ResourceName, project.Namespace, service.Port, service.Image, environmentString)
