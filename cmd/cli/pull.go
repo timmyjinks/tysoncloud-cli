@@ -118,13 +118,13 @@ var pullCmd = &cobra.Command{
 				for _, service := range services {
 					if service.ResourceName == name {
 						environment := environmentsMap[service.ID]
-						environmentString := util.ToEnvString(environment)
+						environmentMap := util.ToEnvMap(environment)
 
 						if err := app.dsvc.Create(deploy.Deployment{
 							Namespace: namespace,
 							Name:      name,
 							Hostname:  service.PublicDomain,
-							Env:       environmentString,
+							Env:       environmentMap,
 							Image:     service.Image,
 							Port:      service.Port,
 						}); err != nil {
