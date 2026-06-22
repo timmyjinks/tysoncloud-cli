@@ -56,9 +56,9 @@ var pullCmd = &cobra.Command{
 						return err
 					}
 
-					enironmentString := util.ToEnvString(environments)
+					environmentString := util.ToEnvString(environments)
 
-					fmt.Fprintf(&builder, "%s %s %d %s %s\n", service.ResourceName, project.Namespace, service.Port, service.Image, enironmentString)
+					fmt.Fprintf(&builder, "%s %s %d %s %s\n", service.ResourceName, project.Namespace, service.Port, service.Image, environmentString)
 				}
 			}
 		}
