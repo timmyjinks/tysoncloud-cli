@@ -111,3 +111,13 @@ func GetEnv(key, fallback string) string {
 	}
 	return env
 }
+
+func PrintDiff(added, removed []string) {
+	for _, id := range removed {
+		fmt.Println("-", id)
+	}
+
+	for _, id := range added {
+		fmt.Println("+", id)
+	}
+}

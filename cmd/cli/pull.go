@@ -75,7 +75,7 @@ var pullCmd = &cobra.Command{
 		}
 
 		removed, added := util.CompareDiff(diffFile, builder.String())
-		printDiff(added, removed)
+		util.PrintDiff(added, removed)
 
 		for _, id := range removed {
 			resource := strings.Split(id, "-")
@@ -137,14 +137,4 @@ var pullCmd = &cobra.Command{
 
 		return util.WriteFile(builder.String(), diffFileLocation)
 	},
-}
-
-func printDiff(added, removed []string) {
-	for _, id := range removed {
-		fmt.Println("-", id)
-	}
-
-	for _, id := range added {
-		fmt.Println("+", id)
-	}
 }
