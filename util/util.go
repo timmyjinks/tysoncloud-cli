@@ -2,8 +2,10 @@ package util
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/timmyjinks/tysoncloud-cli/store"
@@ -18,7 +20,7 @@ func IsAddr(addr string) bool {
 	return addrRegex.MatchString(addr)
 }
 
-func ToEnvString(envs []store.EnvironmentsTable) map[string][]byte {
+func ToEnvMap(envs []store.EnvironmentsTable) map[string][]byte {
 	envsMap := make(map[string][]byte)
 
 	for _, env := range envs {
@@ -26,6 +28,17 @@ func ToEnvString(envs []store.EnvironmentsTable) map[string][]byte {
 	}
 
 	return envsMap
+}
+
+func ToEnvString(envs []store.EnvironmentsTable) string {
+	sort.Slice(envs, func(i, j int) bool {
+		return envs[i].Key < envs[j].Key
+	})
+	var parts []string
+	for _, e := range envs {
+		parts = append(parts, fmt.Sprintf("%s=%s", e.Key, e.Val))
+	}
+	return strings.Join(parts, ",")
 }
 
 func CompareDiff(file1, file2 string) (deletions []string, additions []string) {
