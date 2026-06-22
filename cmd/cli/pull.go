@@ -1,13 +1,19 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"os"
+	"path"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/timmyjinks/tysoncloud-cli/deploy"
 	"github.com/timmyjinks/tysoncloud-cli/util"
 )
+
+var projectDir = fmt.Sprintf("%s/.local/share/tysoncloud", os.Getenv("HOME"))
+var diffFile = path.Join(projectDir, "diff.txt")
 
 var pullCmd = &cobra.Command{
 	Use:   "pull",
@@ -19,7 +25,14 @@ var pullCmd = &cobra.Command{
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var builder strings.Builder
-		infraFile, err := util.ReadFile("infra.txt")
+		if _, err := os.Stat(projectDir); errors.Is(err, os.ErrNotExist) {
+			err := os.Mkdir(projectDir, 0744)
+			if err != nil {
+				return err
+			}
+		}
+
+		infraFile, err := util.ReadFile(diffFile)
 		if err != nil {
 			return err
 		}
@@ -85,6 +98,6 @@ var pullCmd = &cobra.Command{
 				}
 			}
 		}
-		return util.WriteFile(builder.String(), "infra.txt")
+		return util.WriteFile(builder.String(), diffFile)
 	},
 }

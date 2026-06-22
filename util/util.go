@@ -64,7 +64,7 @@ func toSet(s string) map[string]struct{} {
 
 func ReadFile(filename string) (string, error) {
 	var lines strings.Builder
-	file, err := os.Open(filename)
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_RDONLY, 0600)
 	if err != nil {
 		return "", err
 	}
@@ -79,7 +79,7 @@ func ReadFile(filename string) (string, error) {
 }
 
 func WriteFile(content, filename string) error {
-	file, err := os.OpenFile(filename, os.O_WRONLY, 0755)
+	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		return err
 	}
