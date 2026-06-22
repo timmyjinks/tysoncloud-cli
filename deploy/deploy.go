@@ -71,6 +71,14 @@ func (d *DeployService) BatchCreate(deployments ...Deployment) error {
 	return nil
 }
 
+func (d *DeployService) CreateProject(deployment Deployment) error {
+	err := d.ensureNamespace(deployment.Namespace)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (d *DeployService) Create(deployment Deployment) error {
 	err := d.ensureNamespace(deployment.Namespace)
 	if err != nil {

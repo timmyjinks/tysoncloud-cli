@@ -13,7 +13,7 @@ import (
 )
 
 var projectDir = fmt.Sprintf("%s/.local/share/tysoncloud", util.GetEnv("HOME", "./diff.txt"))
-var diffFile = path.Join(projectDir, "diff.txt")
+var diffFileLocation = path.Join(projectDir, "diff.txt")
 
 var pullCmd = &cobra.Command{
 	Use:   "pull",
@@ -32,7 +32,7 @@ var pullCmd = &cobra.Command{
 			}
 		}
 
-		infraFile, err := util.ReadFile(diffFile)
+		diffFile, err := util.ReadFile(diffFileLocation)
 		if err != nil {
 			return err
 		}
@@ -42,62 +42,95 @@ var pullCmd = &cobra.Command{
 			return err
 		}
 
+		services, err := app.sp.GetServices()
+		if err != nil {
+			return err
+		}
+
 		for _, project := range projects {
 			fmt.Fprintf(&builder, "%s\n", project.Namespace)
-			services, err := app.sp.GetServicesByID(project.ID)
-			if err != nil {
-				return err
-			}
-
-			for _, service := range services {
-				fmt.Fprintf(&builder, "%s %s\n", service.ResourceName, project.Namespace)
-				environments, err := app.sp.GetEnvironments(service.ID)
-				if err != nil {
-					return err
-				}
-
-				environmentsString := util.ToEnvString(environments)
-
-				if err := app.dsvc.Create(deploy.Deployment{
-					Namespace: project.Namespace,
-					Name:      service.ResourceName,
-					Hostname:  service.PublicDomain,
-					Env:       environmentsString,
-					Image:     service.Image,
-					Port:      service.Port,
-				}); err != nil {
-					return err
-				}
-			}
 		}
 
-		removed, added := util.CompareDiff(infraFile, builder.String())
-
-		for _, id := range added {
-			fmt.Println("+", id)
+		for _, service := range services {
+			fmt.Fprintf(&builder, "%s %s\n", service.ResourceName, "proj-"+service.ProjectId)
 		}
+
+		removed, added := util.CompareDiff(diffFile, builder.String())
+		printDiff(added, removed)
 
 		for _, id := range removed {
-			fmt.Println("-", id)
 			resource := strings.Split(id, "-")
 
-			switch resource[0] {
+			prefix := resource[0]
+
+			switch prefix {
 			case "proj":
-				err := app.dsvc.Delete(resource[0])
+				err := app.dsvc.Delete(id)
 				if err != nil {
 					return err
 				}
 			case "svc":
-				split := strings.Split(id, " ")
+				service := strings.Split(id, " ")
+				name := service[0]
+				namespace := service[1]
+
 				err := app.dsvc.DeleteService(deploy.Deployment{
-					Name:      split[0],
-					Namespace: split[1],
+					Name:      name,
+					Namespace: namespace,
 				})
 				if err != nil {
 					return err
 				}
 			}
 		}
-		return util.WriteFile(builder.String(), diffFile)
+
+		for _, id := range added {
+			resource := strings.Split(id, "-")
+
+			prefix := resource[0]
+
+			switch prefix {
+			case "proj":
+				app.dsvc.CreateProject(deploy.Deployment{Namespace: id})
+			case "svc":
+				service := strings.Split(id, " ")
+				name := service[0]
+
+				for _, service := range services {
+					if service.ResourceName == name {
+						environments, err := app.sp.GetEnvironments(service.ID)
+						if err != nil {
+							return err
+						}
+
+						environmentsString := util.ToEnvString(environments)
+
+						if err := app.dsvc.Create(deploy.Deployment{
+							Namespace: "proj-" + service.ProjectId,
+							Name:      service.ResourceName,
+							Hostname:  service.PublicDomain,
+							Env:       environmentsString,
+							Image:     service.Image,
+							Port:      service.Port,
+						}); err != nil {
+							return err
+						}
+
+					}
+				}
+			}
+		}
+
+		return util.WriteFile(builder.String(), diffFileLocation)
 	},
+}
+
+func printDiff(added, removed []string) {
+	for _, id := range added {
+		fmt.Println("+", id)
+	}
+
+	for _, id := range removed {
+		fmt.Println("-", id)
+	}
 }
