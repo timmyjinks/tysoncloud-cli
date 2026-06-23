@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"strings"
@@ -15,6 +16,8 @@ import (
 
 var projectDir = fmt.Sprintf("%s/.local/share/tysoncloud", util.GetEnv("HOME", "./diff.txt"))
 var diffFileLocation = path.Join(projectDir, "diff.txt")
+
+var force bool
 
 var pullCmd = &cobra.Command{
 	Use:   "pull",
@@ -86,7 +89,7 @@ var pullCmd = &cobra.Command{
 			case "proj":
 				err := app.dsvc.Delete(id)
 				if err != nil {
-					return err
+					log.Println(err)
 				}
 			case "svc":
 				serviceParts := strings.Fields(id)
@@ -97,44 +100,59 @@ var pullCmd = &cobra.Command{
 					Namespace: namespace,
 				})
 				if err != nil {
-					return err
+					log.Println(err)
 				}
 			}
 		}
 
-		for _, id := range added {
-			resource := strings.Split(id, "-")
-			prefix := resource[0]
-
-			switch prefix {
-			case "proj":
-				if err := app.dsvc.CreateProject(id); err != nil {
-					return err
-				}
-			case "svc":
-				serviceParts := strings.Fields(id)
-				name, namespace := serviceParts[0], serviceParts[1]
-
-				for _, service := range services {
-					if service.ResourceName == name {
-						environment := environmentsMap[service.ID]
-						environmentMap := util.ToEnvMap(environment)
-
-						if err := app.dsvc.Create(deploy.Deployment{
-							Namespace: namespace,
-							Name:      name,
-							Hostname:  service.PublicDomain,
-							Env:       environmentMap,
-							Image:     service.Image,
-							Port:      service.Port,
-						}); err != nil {
-							return err
-						}
-					}
-				}
+		if force {
+			for id := range strings.SplitSeq(builder.String(), "\n") {
+				create(id, services, environmentsMap)
+			}
+		} else {
+			for _, id := range added {
+				create(id, services, environmentsMap)
 			}
 		}
 
 		return util.WriteFile(builder.String(), diffFileLocation)
 	},
+}
+
+func create(id string, services []store.ServicesTable, environmentsMap map[string][]store.EnvironmentsTable) error {
+	resource := strings.Split(id, "-")
+	prefix := resource[0]
+
+	switch prefix {
+	case "proj":
+		if err := app.dsvc.CreateProject(id); err != nil {
+			log.Println(err)
+		}
+	case "svc":
+		serviceParts := strings.Fields(id)
+		name, namespace := serviceParts[0], serviceParts[1]
+
+		for _, service := range services {
+			if service.ResourceName == name {
+				environment := environmentsMap[service.ID]
+				environmentMap := util.ToEnvMap(environment)
+
+				if err := app.dsvc.Create(deploy.Deployment{
+					Namespace: namespace,
+					Name:      name,
+					Hostname:  service.PublicDomain,
+					Env:       environmentMap,
+					Image:     service.Image,
+					Port:      service.Port,
+				}); err != nil {
+					log.Println(err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func init() {
+	pullCmd.Flags().BoolVarP(&force, "force", "f", false, "force pull all")
 }
