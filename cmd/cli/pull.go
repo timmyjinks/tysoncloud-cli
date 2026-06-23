@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"strings"
@@ -88,7 +89,7 @@ var pullCmd = &cobra.Command{
 			case "proj":
 				err := app.dsvc.Delete(id)
 				if err != nil {
-					return err
+					log.Println(err)
 				}
 			case "svc":
 				serviceParts := strings.Fields(id)
@@ -99,7 +100,7 @@ var pullCmd = &cobra.Command{
 					Namespace: namespace,
 				})
 				if err != nil {
-					return err
+					log.Println(err)
 				}
 			}
 		}
@@ -125,7 +126,7 @@ func create(id string, services []store.ServicesTable, environmentsMap map[strin
 	switch prefix {
 	case "proj":
 		if err := app.dsvc.CreateProject(id); err != nil {
-			return err
+			log.Println(err)
 		}
 	case "svc":
 		serviceParts := strings.Fields(id)
@@ -144,7 +145,7 @@ func create(id string, services []store.ServicesTable, environmentsMap map[strin
 					Image:     service.Image,
 					Port:      service.Port,
 				}); err != nil {
-					return err
+					log.Println(err)
 				}
 			}
 		}
