@@ -109,10 +109,10 @@ var pullCmd = &cobra.Command{
 			for id := range strings.SplitSeq(builder.String(), "\n") {
 				create(id, services, environmentsMap)
 			}
-		}
-
-		for _, id := range added {
-			create(id, services, environmentsMap)
+		} else {
+			for _, id := range added {
+				create(id, services, environmentsMap)
+			}
 		}
 
 		return util.WriteFile(builder.String(), diffFileLocation)
