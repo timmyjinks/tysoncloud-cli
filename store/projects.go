@@ -9,9 +9,9 @@ import (
 
 type ProjectsTable struct {
 	ID        string    `json:"id,omitempty"`
-	UserId    string    `json:"user_id,omitempty"`
+	UserId    string    `json:"user_id"`
 	Namespace string    `json:"namespace,omitempty"`
-	Name      string    `json:"name,omitempty"`
+	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -27,4 +27,21 @@ func (s *SupabaseStoreService) GetProjects() ([]ProjectsTable, error) {
 	}
 
 	return table, nil
+}
+
+func (s *SupabaseStoreService) CreateProject(id, userId, name string) error {
+	_, _, err := s.cli.From("projects").Insert(struct {
+		ID     string `json:"id,omitempty"`
+		UserId string `json:"user_id"`
+		Name   string `json:"name"`
+	}{
+		ID:     id,
+		UserId: userId,
+		Name:   name,
+	}, false, "", "", "").Execute()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
