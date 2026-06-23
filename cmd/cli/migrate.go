@@ -1,11 +1,7 @@
 package main
 
 import (
-	"log"
-
-	"github.com/google/uuid"
 	"github.com/spf13/cobra"
-	"github.com/timmyjinks/tysoncloud-cli/deploy"
 )
 
 var migrateCmd = &cobra.Command{
@@ -51,31 +47,11 @@ var migrateCmd = &cobra.Command{
 				if err := app.sp.CreateProject(deployment.ID, deployment.UserID, deployment.Name); err != nil {
 					return err
 				}
-
-				if err := app.dsvc.CreateProject("proj-" + deployment.ID); err != nil {
-					log.Println(err)
-				}
 			}
 
 			if !serviceMap[deployment.ID] {
-				serviceId, err := uuid.NewRandom()
-				if err != nil {
+				if err := app.sp.CreateService(deployment.ID, deployment.Name, deployment.Source, deployment.Status); err != nil {
 					return err
-				}
-
-				if err := app.sp.CreateService(serviceId.String(), deployment.ID, deployment.Name, deployment.Source, deployment.Status); err != nil {
-					return err
-				}
-
-				if err := app.dsvc.Create(deploy.Deployment{
-					Namespace: "proj-" + deployment.ID,
-					Name:      "svc-" + serviceId.String(),
-					Hostname:  "tc-" + serviceId.String(),
-					Env:       map[string][]byte{},
-					Image:     deployment.Source,
-					Port:      3000,
-				}); err != nil {
-					log.Println(err)
 				}
 			}
 		}

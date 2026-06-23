@@ -49,7 +49,7 @@ func (s *SupabaseStoreService) GetServices() ([]ServicesTable, error) {
 	return table, nil
 }
 
-func (s *SupabaseStoreService) CreateService(id, projectId, name, image, status string) error {
+func (s *SupabaseStoreService) CreateService(projectId, name, image, status string) error {
 	_, _, err := s.cli.From("services").Insert(struct {
 		ID        string `json:"id,omitempty"`
 		ProjectId string `json:"project_id,omitempty"`
@@ -57,7 +57,6 @@ func (s *SupabaseStoreService) CreateService(id, projectId, name, image, status 
 		Status    string `json:"status,omitempty"`
 		Image     string `json:"image,omitempty"`
 	}{
-		ID:        id,
 		ProjectId: projectId,
 		Name:      name,
 		Status:    status,
