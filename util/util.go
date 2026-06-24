@@ -124,8 +124,13 @@ func PrintDiff(removed, added []string) {
 }
 
 func EnsureDirExists(projectLocation string) error {
-	_, err := os.Stat(projectLocation)
-	errors.Is(err, os.ErrNotExist)
+	info, err := os.Stat(projectLocation)
+	if err == nil {
+		if !info.IsDir() {
+			return fmt.Errorf("%s exists but is not a directory", projectLocation)
+		}
+		return nil
+	}
 	if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}

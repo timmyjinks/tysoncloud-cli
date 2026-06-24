@@ -27,7 +27,6 @@ type infraState struct {
 
 var projectDir = fmt.Sprintf("%s/.local/share/tysoncloud", util.GetEnv("HOME", "./diff.txt"))
 var diffFileLocation = path.Join(projectDir, "diff.txt")
-var wg sync.WaitGroup
 
 var force bool
 
@@ -40,6 +39,8 @@ var pullCmd = &cobra.Command{
 	},
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		var wg sync.WaitGroup
+
 		err := util.EnsureDirExists(projectDir)
 		if err != nil {
 			return err
@@ -59,14 +60,24 @@ var pullCmd = &cobra.Command{
 		deletions, additions := util.CompareDiff(diffFile, newDiffFile)
 		util.PrintDiff(deletions, additions)
 
+		var (
+			mu         sync.Mutex
+			errorEdits = make(map[string]bool)
+		)
+
 		for _, d := range deletions {
 			wg.Go(func() {
 				err := destroy(d)
 				if err != nil {
+					mu.Lock()
+					errorEdits[strings.Split(d, " ")[0]] = true
+					mu.Unlock()
 					log.Println(err)
 				}
 			})
 		}
+
+		wg.Wait()
 
 		targets := additions
 		if force {
@@ -77,12 +88,19 @@ var pullCmd = &cobra.Command{
 			wg.Go(func() {
 				err := create(t, state)
 				if err != nil {
+					mu.Lock()
+					errorEdits[strings.Split(t, " ")[0]] = true
+					mu.Unlock()
 					log.Println(err)
 				}
 			})
 		}
 
 		wg.Wait()
+
+		if len(errorEdits) != 0 {
+			newDiffFile = getCurrentStateFailed(state, errorEdits)
+		}
 
 		return util.WriteFile(newDiffFile, diffFileLocation)
 	},
@@ -155,8 +173,37 @@ func getCurrentState(s *infraState) string {
 	return currentState.String()
 }
 
+func getCurrentStateFailed(s *infraState, exclude map[string]bool) string {
+	var currentState strings.Builder
+
+	for _, project := range s.projects {
+		if exclude[project.Namespace] {
+			continue
+		}
+		fmt.Fprintln(&currentState, project.Namespace)
+		services := s.servicesMap[project.ID]
+		for _, service := range services {
+			if exclude[service.ResourceName] {
+				continue
+			}
+			environments := util.ToEnvString(s.environmentsMap[service.ID])
+			volume := s.volumesMap[service.ID]
+
+			if volume == nil {
+				fmt.Fprintln(&currentState, service.ResourceName, project.Namespace, service.Port, service.Image, environments)
+			} else {
+				fmt.Fprintln(&currentState, service.ResourceName, project.Namespace, service.Port, service.Image, volume.MountPath, volume.StorageGB, environments)
+			}
+		}
+	}
+	return currentState.String()
+}
+
 func create(id string, state *infraState) error {
 	fields := strings.Fields(id)
+	if len(fields) == 0 {
+		return fmt.Errorf("invalid empty diff row")
+	}
 	resource, _, _ := strings.Cut(fields[0], "-")
 
 	switch resource {
@@ -166,6 +213,9 @@ func create(id string, state *infraState) error {
 			return err
 		}
 	case "svc":
+		if len(fields) < 2 {
+			return fmt.Errorf("invalid service diff row %q", id)
+		}
 		name, namespace := fields[0], fields[1]
 
 		service := state.servicesByNameMap[name]
@@ -199,7 +249,10 @@ func create(id string, state *infraState) error {
 
 func destroy(id string) error {
 	fields := strings.Fields(id)
-	resource := strings.Split(fields[0], "-")[0]
+	if len(fields) == 0 {
+		return fmt.Errorf("invalid empty diff row")
+	}
+	resource, _, _ := strings.Cut(fields[0], "-")
 
 	switch resource {
 	case "proj":
@@ -208,6 +261,9 @@ func destroy(id string) error {
 			return err
 		}
 	case "svc":
+		if len(fields) < 2 {
+			return fmt.Errorf("invalid service diff row %q", id)
+		}
 		name, namespace := fields[0], fields[1]
 
 		err := app.dsvc.DeleteService(deploy.Deployment{
