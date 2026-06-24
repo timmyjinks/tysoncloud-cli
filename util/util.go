@@ -42,17 +42,6 @@ func ToEnvString(envs []store.EnvironmentsTable) string {
 	return strings.Join(parts, ",")
 }
 
-func ToVolumeString(volumes []store.VolumesTable) string {
-	sort.Slice(volumes, func(i, j int) bool {
-		return volumes[i].MountPath[1] < volumes[j].MountPath[1]
-	})
-	var parts []string
-	for _, volume := range volumes {
-		parts = append(parts, fmt.Sprintf("%s %d", volume.MountPath, volume.StorageGB))
-	}
-	return strings.Join(parts, ",")
-}
-
 func CompareDiff(file1, file2 string) (deletions []string, additions []string) {
 	oldSet := toSet(file1)
 	newSet := toSet(file2)
@@ -135,11 +124,10 @@ func PrintDiff(removed, added []string) {
 }
 
 func EnsureDirExists(projectLocation string) error {
-	if _, err := os.Stat(projectLocation); errors.Is(err, os.ErrNotExist) {
-		err := os.MkdirAll(projectLocation, 0755)
-		if err != nil {
-			return err
-		}
+	_, err := os.Stat(projectLocation)
+	errors.Is(err, os.ErrNotExist)
+	if !errors.Is(err, os.ErrNotExist) {
+		return err
 	}
-	return nil
+	return os.MkdirAll(projectLocation, 0755)
 }
