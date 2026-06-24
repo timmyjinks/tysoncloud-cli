@@ -2,6 +2,7 @@ package util
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -37,6 +38,17 @@ func ToEnvString(envs []store.EnvironmentsTable) string {
 	var parts []string
 	for _, e := range envs {
 		parts = append(parts, fmt.Sprintf("%s=%s", e.Key, e.Val))
+	}
+	return strings.Join(parts, ",")
+}
+
+func ToVolumeString(volumes []store.VolumesTable) string {
+	sort.Slice(volumes, func(i, j int) bool {
+		return volumes[i].MountPath[1] < volumes[j].MountPath[1]
+	})
+	var parts []string
+	for _, volume := range volumes {
+		parts = append(parts, fmt.Sprintf("%s %d", volume.MountPath, volume.StorageGB))
 	}
 	return strings.Join(parts, ",")
 }
@@ -112,7 +124,7 @@ func GetEnv(key, fallback string) string {
 	return env
 }
 
-func PrintDiff(added, removed []string) {
+func PrintDiff(removed, added []string) {
 	for _, id := range removed {
 		fmt.Println("-", id)
 	}
@@ -120,4 +132,14 @@ func PrintDiff(added, removed []string) {
 	for _, id := range added {
 		fmt.Println("+", id)
 	}
+}
+
+func EnsureDirExists(projectLocation string) error {
+	if _, err := os.Stat(projectLocation); errors.Is(err, os.ErrNotExist) {
+		err := os.MkdirAll(projectLocation, 0755)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
