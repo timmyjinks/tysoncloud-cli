@@ -2,6 +2,7 @@ package util
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -112,7 +113,7 @@ func GetEnv(key, fallback string) string {
 	return env
 }
 
-func PrintDiff(added, removed []string) {
+func PrintDiff(removed, added []string) {
 	for _, id := range removed {
 		fmt.Println("-", id)
 	}
@@ -120,4 +121,18 @@ func PrintDiff(added, removed []string) {
 	for _, id := range added {
 		fmt.Println("+", id)
 	}
+}
+
+func EnsureDirExists(projectLocation string) error {
+	info, err := os.Stat(projectLocation)
+	if err == nil {
+		if !info.IsDir() {
+			return fmt.Errorf("%s exists but is not a directory", projectLocation)
+		}
+		return nil
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return os.MkdirAll(projectLocation, 0755)
 }
