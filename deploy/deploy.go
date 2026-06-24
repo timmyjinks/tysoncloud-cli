@@ -93,8 +93,10 @@ func (d *DeployService) Create(deployment Deployment) error {
 		return err
 	}
 
-	if err := d.createSecret(deployment); err != nil {
-		return err
+	if len(deployment.Env) != 0 {
+		if err := d.createSecret(deployment); err != nil {
+			return err
+		}
 	}
 
 	if err := d.createStatefulSet(deployment); err != nil {

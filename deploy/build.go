@@ -53,16 +53,19 @@ func (d *DeployService) createStatefulSet(deployment Deployment) error {
 					ContainerPort: &deployment.Port,
 				},
 			},
-			EnvFrom: []appcorev1.EnvFromSourceApplyConfiguration{
-				{
-					SecretRef: &appcorev1.SecretEnvSourceApplyConfiguration{
-						LocalObjectReferenceApplyConfiguration: appcorev1.LocalObjectReferenceApplyConfiguration{
-							Name: &deployment.Name,
-						},
+		},
+	}
+
+	if len(deployment.Env) != 0 {
+		container[0].EnvFrom = []appcorev1.EnvFromSourceApplyConfiguration{
+			{
+				SecretRef: &appcorev1.SecretEnvSourceApplyConfiguration{
+					LocalObjectReferenceApplyConfiguration: appcorev1.LocalObjectReferenceApplyConfiguration{
+						Name: &deployment.Name,
 					},
 				},
 			},
-		},
+		}
 	}
 
 	spec := &appsv1apply.StatefulSetSpecApplyConfiguration{
