@@ -103,7 +103,7 @@ func (d *DeployService) createStatefulSet(deployment Deployment) error {
 				},
 				ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
 					Name:      &deployment.Name,
-					Namespace: &deployment.Name,
+					Namespace: &deployment.Namespace,
 				},
 				Spec: &appcorev1.PersistentVolumeClaimSpecApplyConfiguration{
 					AccessModes: []corev1.PersistentVolumeAccessMode{
@@ -111,7 +111,7 @@ func (d *DeployService) createStatefulSet(deployment Deployment) error {
 					},
 					Resources: &appcorev1.VolumeResourceRequirementsApplyConfiguration{
 						Requests: &corev1.ResourceList{
-							corev1.ResourceStorage: resource.MustParse(fmt.Sprintf("%d", deployment.Volume.StorageGB)),
+							corev1.ResourceStorage: resource.MustParse(fmt.Sprintf("%dGi", deployment.Volume.StorageGB)),
 						},
 					},
 				},
