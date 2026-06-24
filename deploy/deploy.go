@@ -56,7 +56,7 @@ func (d *DeployService) BatchCreate(deployments ...Deployment) error {
 			return err
 		}
 
-		if err := d.createDeployment(deployment); err != nil {
+		if err := d.createStatefulSet(deployment); err != nil {
 			return err
 		}
 
@@ -97,7 +97,7 @@ func (d *DeployService) Create(deployment Deployment) error {
 		return err
 	}
 
-	if err := d.createDeployment(deployment); err != nil {
+	if err := d.createStatefulSet(deployment); err != nil {
 		return err
 	}
 
@@ -144,7 +144,7 @@ func (d *DeployService) DeleteService(deployment Deployment) error {
 		return err
 	}
 
-	if err := d.clientset.AppsV1().Deployments(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
+	if err := d.clientset.AppsV1().StatefulSets(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 

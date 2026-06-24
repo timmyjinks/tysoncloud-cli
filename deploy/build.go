@@ -2,8 +2,10 @@ package deploy
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/timmyjinks/tysoncloud-cli/util"
+	v1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -22,12 +24,104 @@ type Deployment struct {
 	Env       map[string][]byte
 	Image     string
 	Port      int32
+	Volume    *Volume
 }
 
-func (d *DeployService) createDeployment(deployment Deployment) error {
-	_, err := d.clientset.AppsV1().Deployments(deployment.Namespace).Apply(context.TODO(), &appsv1apply.DeploymentApplyConfiguration{
+type Volume struct {
+	MountPath string
+	StorageGB int32
+}
+
+func (d *DeployService) createStatefulSet(deployment Deployment) error {
+	container := []appcorev1.ContainerApplyConfiguration{
+		{
+			Name:  &deployment.Name,
+			Image: &deployment.Image,
+			Resources: &appcorev1.ResourceRequirementsApplyConfiguration{
+				Limits: &corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("500m"),
+					corev1.ResourceMemory: resource.MustParse("256Mi"),
+				},
+				Requests: &corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("100m"),
+					corev1.ResourceMemory: resource.MustParse("1Mi"),
+				},
+			},
+			Ports: []appcorev1.ContainerPortApplyConfiguration{
+				{
+					Protocol:      (*corev1.Protocol)(util.StringPtr(string(corev1.ProtocolTCP))),
+					ContainerPort: &deployment.Port,
+				},
+			},
+			EnvFrom: []appcorev1.EnvFromSourceApplyConfiguration{
+				{
+					SecretRef: &appcorev1.SecretEnvSourceApplyConfiguration{
+						LocalObjectReferenceApplyConfiguration: appcorev1.LocalObjectReferenceApplyConfiguration{
+							Name: &deployment.Name,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	spec := &appsv1apply.StatefulSetSpecApplyConfiguration{
+		Selector: &appmetav1.LabelSelectorApplyConfiguration{
+			MatchLabels: map[string]string{
+				"app": deployment.Name,
+			},
+		},
+		PersistentVolumeClaimRetentionPolicy: &appsv1apply.StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration{
+			WhenDeleted: (*v1.PersistentVolumeClaimRetentionPolicyType)(util.StringPtr("Delete")),
+		},
+		Template: &appcorev1.PodTemplateSpecApplyConfiguration{
+			ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
+				Name: &deployment.Name,
+				Labels: map[string]string{
+					"app": deployment.Name,
+				},
+			},
+			Spec: &appcorev1.PodSpecApplyConfiguration{
+				Containers: container,
+			},
+		},
+	}
+
+	if deployment.Volume != nil {
+		spec.Template.Spec.Containers[0].VolumeMounts = []appcorev1.VolumeMountApplyConfiguration{
+			{
+				Name:      &deployment.Name,
+				MountPath: &deployment.Volume.MountPath,
+			},
+		}
+
+		spec.VolumeClaimTemplates = []appcorev1.PersistentVolumeClaimApplyConfiguration{
+			{
+				TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
+					Kind:       util.StringPtr("PersistentVolumeClaim"),
+					APIVersion: util.StringPtr("v1"),
+				},
+				ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
+					Name:      &deployment.Name,
+					Namespace: &deployment.Namespace,
+				},
+				Spec: &appcorev1.PersistentVolumeClaimSpecApplyConfiguration{
+					AccessModes: []corev1.PersistentVolumeAccessMode{
+						corev1.ReadWriteOnce,
+					},
+					Resources: &appcorev1.VolumeResourceRequirementsApplyConfiguration{
+						Requests: &corev1.ResourceList{
+							corev1.ResourceStorage: resource.MustParse(fmt.Sprintf("%dGi", deployment.Volume.StorageGB)),
+						},
+					},
+				},
+			},
+		}
+	}
+
+	_, err := d.clientset.AppsV1().StatefulSets(deployment.Namespace).Apply(context.TODO(), &appsv1apply.StatefulSetApplyConfiguration{
 		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
-			Kind:       util.StringPtr("Deployment"),
+			Kind:       util.StringPtr("StatefulSet"),
 			APIVersion: util.StringPtr("apps/v1"),
 		},
 		ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
@@ -39,54 +133,7 @@ func (d *DeployService) createDeployment(deployment Deployment) error {
 				"reloader.stakater.com/auto": "true",
 			},
 		},
-		Spec: &appsv1apply.DeploymentSpecApplyConfiguration{
-			Selector: &appmetav1.LabelSelectorApplyConfiguration{
-				MatchLabels: map[string]string{
-					"app": deployment.Name,
-				},
-			},
-			Template: &appcorev1.PodTemplateSpecApplyConfiguration{
-				ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
-					Name: &deployment.Name,
-					Labels: map[string]string{
-						"app": deployment.Name,
-					},
-				},
-				Spec: &appcorev1.PodSpecApplyConfiguration{
-					Containers: []appcorev1.ContainerApplyConfiguration{
-						{
-							Name:  &deployment.Name,
-							Image: &deployment.Image,
-							Resources: &appcorev1.ResourceRequirementsApplyConfiguration{
-								Limits: &corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse("500m"),
-									corev1.ResourceMemory: resource.MustParse("256Mi"),
-								},
-								Requests: &corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse("100m"),
-									corev1.ResourceMemory: resource.MustParse("1Mi"),
-								},
-							},
-							Ports: []appcorev1.ContainerPortApplyConfiguration{
-								{
-									Protocol:      (*corev1.Protocol)(util.StringPtr(string(corev1.ProtocolTCP))),
-									ContainerPort: &deployment.Port,
-								},
-							},
-							EnvFrom: []appcorev1.EnvFromSourceApplyConfiguration{
-								{
-									SecretRef: &appcorev1.SecretEnvSourceApplyConfiguration{
-										LocalObjectReferenceApplyConfiguration: appcorev1.LocalObjectReferenceApplyConfiguration{
-											Name: &deployment.Name,
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
+		Spec: spec,
 	}, metav1.ApplyOptions{
 		FieldManager: "controller",
 	})
@@ -140,7 +187,7 @@ func (d *DeployService) createHPA(deployment Deployment) error {
 		},
 		Spec: &v2.HorizontalPodAutoscalerSpecApplyConfiguration{
 			ScaleTargetRef: &v2.CrossVersionObjectReferenceApplyConfiguration{
-				Kind:       util.StringPtr("Deployment"),
+				Kind:       util.StringPtr("StatefulSet"),
 				APIVersion: util.StringPtr("apps/v1"),
 				Name:       &deployment.Name,
 			},

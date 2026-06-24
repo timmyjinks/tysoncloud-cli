@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/spf13/cobra"
 	"github.com/timmyjinks/tysoncloud-cli/deploy"
@@ -16,6 +17,7 @@ import (
 
 var projectDir = fmt.Sprintf("%s/.local/share/tysoncloud", util.GetEnv("HOME", "./diff.txt"))
 var diffFileLocation = path.Join(projectDir, "diff.txt")
+var wg sync.WaitGroup
 
 var force bool
 
@@ -66,14 +68,31 @@ var pullCmd = &cobra.Command{
 			environmentsMap[environment.ServiceId] = append(environmentsMap[environment.ServiceId], environment)
 		}
 
+		volumes, err := app.sp.GetVolumes()
+		if err != nil {
+			return err
+		}
+
+		volumesMap := make(map[string]*store.VolumesTable)
+		for _, volume := range volumes {
+			volumesMap[volume.ServiceId] = &volume
+		}
+
 		for _, project := range projects {
 			fmt.Fprintf(&builder, "%s\n", project.Namespace)
 
 			serviceProject := servicesMap[project.ID]
 			for _, service := range serviceProject {
+				volume := volumesMap[service.ID]
 				environment := environmentsMap[service.ID]
 				environmentString := util.ToEnvString(environment)
-				fmt.Fprintf(&builder, "%s %s %d %s %s\n", service.ResourceName, project.Namespace, service.Port, service.Image, environmentString)
+
+				if volume != nil {
+					fmt.Fprintf(&builder, "%s %s %d %s %s %d %s\n", service.ResourceName, project.Namespace, service.Port, service.Image, volume.MountPath, volume.StorageGB, environmentString)
+				} else {
+					fmt.Fprintf(&builder, "%s %s %d %s %s\n", service.ResourceName, project.Namespace, service.Port, service.Image, environmentString)
+				}
+
 			}
 		}
 
@@ -107,19 +126,31 @@ var pullCmd = &cobra.Command{
 
 		if force {
 			for id := range strings.SplitSeq(builder.String(), "\n") {
-				create(id, services, environmentsMap)
+				wg.Go(func() {
+					err := create(id, services, environmentsMap, volumesMap)
+					if err != nil {
+						log.Println(err)
+					}
+				})
 			}
 		} else {
 			for _, id := range added {
-				create(id, services, environmentsMap)
+				wg.Go(func() {
+					err := create(id, services, environmentsMap, volumesMap)
+					if err != nil {
+						log.Println(err)
+					}
+				})
 			}
 		}
+
+		wg.Wait()
 
 		return util.WriteFile(builder.String(), diffFileLocation)
 	},
 }
 
-func create(id string, services []store.ServicesTable, environmentsMap map[string][]store.EnvironmentsTable) error {
+func create(id string, services []store.ServicesTable, environmentsMap map[string][]store.EnvironmentsTable, volumesMap map[string]*store.VolumesTable) error {
 	resource := strings.Split(id, "-")
 	prefix := resource[0]
 
@@ -134,6 +165,16 @@ func create(id string, services []store.ServicesTable, environmentsMap map[strin
 
 		for _, service := range services {
 			if service.ResourceName == name {
+				volumePtr := volumesMap[service.ID]
+
+				var volume *deploy.Volume = nil
+				if volumePtr != nil {
+					volume = &deploy.Volume{
+						MountPath: volumePtr.MountPath,
+						StorageGB: volumePtr.StorageGB,
+					}
+				}
+
 				environment := environmentsMap[service.ID]
 				environmentMap := util.ToEnvMap(environment)
 
@@ -144,6 +185,7 @@ func create(id string, services []store.ServicesTable, environmentsMap map[strin
 					Env:       environmentMap,
 					Image:     service.Image,
 					Port:      service.Port,
+					Volume:    volume,
 				}); err != nil {
 					log.Println(err)
 				}
