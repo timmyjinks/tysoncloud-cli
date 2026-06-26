@@ -3,7 +3,7 @@ package db
 import "database/sql"
 
 func NewSqliteStorage() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", "file:/var/lib/tysoncloud/test.db")
+	db, err := sql.Open("sqlite3", "file:/var/lib/tysoncloud/servers.db")
 	if err != nil {
 		return nil, err
 	}
