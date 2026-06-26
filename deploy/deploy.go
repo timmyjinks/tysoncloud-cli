@@ -137,13 +137,15 @@ func (d *DeployService) Delete(namespace string) error {
 	return d.clientset.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
 }
 
-func (d *DeployService) DeleteService(deployment Deployment) error {
+func (d *DeployService) DeleteService(deployment Deployment, envs bool) error {
 	if err := d.clientset.CoreV1().Services(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 
-	if err := d.clientset.CoreV1().Secrets(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
-		return err
+	if envs {
+		if err := d.clientset.CoreV1().Secrets(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
+			return err
+		}
 	}
 
 	if err := d.clientset.AppsV1().StatefulSets(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {

@@ -265,11 +265,15 @@ func destroy(id string) error {
 			return fmt.Errorf("invalid service diff row %q", id)
 		}
 		name, namespace := fields[0], fields[1]
+		envs := false
+		if len(fields) >= 5 {
+			envs = true
+		}
 
 		err := app.dsvc.DeleteService(deploy.Deployment{
 			Namespace: namespace,
 			Name:      name,
-		})
+		}, envs)
 		if err != nil {
 			return err
 		}
