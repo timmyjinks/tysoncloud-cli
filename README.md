@@ -6,6 +6,65 @@ A personal CLI tool for managing tysoncloud infrastructure and homelab resources
 
 `tysoncloud-cli` manages the lifecycle of tysoncloud infrastructure: pulling remote state from Supabase, deploying services to Kubernetes, managing local server records, and migrating legacy deployment data to the current schema.
 
+## Architecture
+
+tysoncloud-cli sits between two data sources and one deployment target:
+
+- **Supabase** is the source of truth for remote infra state - projects, services, environment variables, and volumes all live here.
+- **SQLite** is a local database for homelab server records that are managed directly by the CLI and have no Supabase equivalent.
+- **Kubernetes** is the deployment target. The CLI talks directly to the cluster via `client-go` using the kubeconfig at `$KUBECONFIG`.
+
+```
+                        ┌─────────────────┐
+                        │    Supabase     │
+                        │  (remote state) │
+                        └────────┬────────┘
+                                 │ pull / migrate
+                                 ▼
+┌──────────────┐        ┌─────────────────┐        ┌─────────────────┐
+│    SQLite    │◄──────►│ tysoncloud-cli  │───────►│   Kubernetes    │
+│ (local only) │        └────────┬────────┘        │    Cluster      │
+└──────────────┘                 │                  └─────────────────┘
+                                 │ read/write
+                                 ▼
+                        ┌─────────────────┐
+                        │   diff.txt      │
+                        │  (local state   │
+                        │   snapshot)     │
+                        └─────────────────┘
+```
+
+### Diff/State File Mechanism
+
+The `pull` command uses a file-based diffing system to determine what has changed in remote infra since the last run. On each pull:
+
+1. The full current state is fetched from Supabase (projects, services, environments, volumes).
+2. That state is serialized into a flat text representation where each line is a resource entry.
+3. The serialized state is compared against `~/.local/share/tysoncloud/diff.txt`, which holds the last known pulled state.
+4. Lines present in the old file but not the new are treated as deletions. Lines present in the new file but not the old are treated as additions.
+5. Kubernetes resources are created or destroyed accordingly, then `diff.txt` is updated to reflect the new state.
+
+If any resources fail to create or destroy, they are excluded from the updated `diff.txt` so the next pull will retry them.
+
+Using `--force` skips the diff entirely and redeploys all resources from the current Supabase state.
+
+### Kubernetes Resources
+
+Each service deployed by the CLI results in the following Kubernetes resources being created or updated via server-side apply:
+
+| Resource | Description |
+|---|---|
+| `Namespace` | Created per project, labelled `managed-by: tysoncloud` |
+| `NetworkPolicy` | Restricts ingress/egress per namespace - allows intra-namespace traffic, gateway ingress from `tc-system`, and egress on DNS (53), HTTP (80), and HTTPS (443) |
+| `StatefulSet` | Runs the service container with CPU/memory limits and optional volume mounts |
+| `Secret` | Holds environment variables for the service, injected via `envFrom` |
+| `PersistentVolumeClaim` | Provisioned via the StatefulSet volume claim template if a volume is configured |
+| `Service` | ClusterIP service mapping port 80 to the container port |
+| `HorizontalPodAutoscaler` | Scales the StatefulSet between 1-10 replicas based on CPU utilization (target 50%) |
+| `HTTPRoute` | Gateway API route pointing to `tysoncloud-gateway` in `tc-system`, routing the public domain to the service |
+
+---
+
 ## Requirements
 
 - Go 1.25+
