@@ -206,4 +206,3 @@ tysoncloud delete deployment <namespace> <name>
 
 - Shell autocompletion is supported for commands that accept server or resource names.
 - The `pull` command runs creates and destroys concurrently where possible.
-- `login` / `logout` commands exist in the codebase but are currently disabled.
