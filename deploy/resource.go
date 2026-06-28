@@ -76,6 +76,7 @@ func (d *DeployService) createStatefulSet(deployment Deployment) error {
 		},
 		PersistentVolumeClaimRetentionPolicy: &appsv1apply.StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration{
 			WhenDeleted: (*v1.PersistentVolumeClaimRetentionPolicyType)(util.StringPtr("Delete")),
+			WhenScaled:  (*v1.PersistentVolumeClaimRetentionPolicyType)(util.StringPtr("Delete")),
 		},
 		Template: &appcorev1.PodTemplateSpecApplyConfiguration{
 			ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
