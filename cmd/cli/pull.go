@@ -25,7 +25,7 @@ type infraState struct {
 	environmentsMap   map[string][]store.EnvironmentsTable
 }
 
-var projectDir = fmt.Sprintf("%s/.local/share/tysoncloud", util.GetEnv("HOME", "./diff.txt"))
+var projectDir = fmt.Sprintf("%s/.tysoncloud", util.GetEnv("HOME", "./diff.txt"))
 var diffFileLocation = path.Join(projectDir, "diff.txt")
 
 var force bool
