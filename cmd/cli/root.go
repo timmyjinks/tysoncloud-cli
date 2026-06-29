@@ -3,11 +3,13 @@ package main
 import (
 	"os"
 
+	"github.com/go-logr/logr"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
 	"github.com/timmyjinks/tysoncloud-cli/db"
 	"github.com/timmyjinks/tysoncloud-cli/deploy"
 	"github.com/timmyjinks/tysoncloud-cli/store"
+	"k8s.io/klog/v2"
 )
 
 type App struct {
@@ -63,6 +65,7 @@ var rootCmd = &cobra.Command{
 		if target.Annotations["deploy"] == "true" {
 			dsvc := deploy.NewDeployService(kubeConfig)
 			app.dsvc = dsvc
+			klog.SetLogger(logr.Discard())
 		}
 
 		return nil
