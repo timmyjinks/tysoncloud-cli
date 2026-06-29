@@ -164,7 +164,7 @@ func getCurrentState(s *infraState) string {
 			volume := s.volumesMap[service.ID]
 
 			if volume == nil {
-				fmt.Fprintln(&currentState, service.ResourceName, project.Namespace, service.Port, service.Image, environments)
+				fmt.Fprintln(&currentState, service.ResourceName, project.Namespace, service.Port, service.Image, ":", ":", environments)
 			} else {
 				fmt.Fprintln(&currentState, service.ResourceName, project.Namespace, service.Port, service.Image, volume.MountPath, volume.StorageGB, environments)
 			}
@@ -190,7 +190,7 @@ func getCurrentStateFailed(s *infraState, exclude map[string]bool) string {
 			volume := s.volumesMap[service.ID]
 
 			if volume == nil {
-				fmt.Fprintln(&currentState, service.ResourceName, project.Namespace, service.Port, service.Image, environments)
+				fmt.Fprintln(&currentState, service.ResourceName, project.Namespace, service.Port, service.Image, ":", ":", environments)
 			} else {
 				fmt.Fprintln(&currentState, service.ResourceName, project.Namespace, service.Port, service.Image, volume.MountPath, volume.StorageGB, environments)
 			}
@@ -265,8 +265,9 @@ func destroy(id string) error {
 			return fmt.Errorf("invalid service diff row %q", id)
 		}
 		name, namespace := fields[0], fields[1]
+
 		envs := false
-		if len(fields) >= 5 {
+		if len(fields) == 7 {
 			envs = true
 		}
 
