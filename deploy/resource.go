@@ -2,10 +2,8 @@ package deploy
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/timmyjinks/tysoncloud-cli/util"
-	v1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -32,7 +30,7 @@ type Volume struct {
 	StorageGB int32
 }
 
-func (d *DeployService) createStatefulSet(deployment Deployment) error {
+func (d *DeployService) createDeployment(deployment Deployment) error {
 	container := []appcorev1.ContainerApplyConfiguration{
 		{
 			Name:  &deployment.Name,
@@ -68,15 +66,11 @@ func (d *DeployService) createStatefulSet(deployment Deployment) error {
 		}
 	}
 
-	spec := &appsv1apply.StatefulSetSpecApplyConfiguration{
+	spec := &appsv1apply.DeploymentSpecApplyConfiguration{
 		Selector: &appmetav1.LabelSelectorApplyConfiguration{
 			MatchLabels: map[string]string{
 				"app": deployment.Name,
 			},
-		},
-		PersistentVolumeClaimRetentionPolicy: &appsv1apply.StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration{
-			WhenDeleted: (*v1.PersistentVolumeClaimRetentionPolicyType)(util.StringPtr("Delete")),
-			WhenScaled:  (*v1.PersistentVolumeClaimRetentionPolicyType)(util.StringPtr("Delete")),
 		},
 		Template: &appcorev1.PodTemplateSpecApplyConfiguration{
 			ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
@@ -98,34 +92,27 @@ func (d *DeployService) createStatefulSet(deployment Deployment) error {
 				MountPath: &deployment.Volume.MountPath,
 			},
 		}
-
-		spec.VolumeClaimTemplates = []appcorev1.PersistentVolumeClaimApplyConfiguration{
+		container[0].VolumeMounts = []appcorev1.VolumeMountApplyConfiguration{
 			{
-				TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
-					Kind:       util.StringPtr("PersistentVolumeClaim"),
-					APIVersion: util.StringPtr("v1"),
-				},
-				ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
-					Name:      &deployment.Name,
-					Namespace: &deployment.Namespace,
-				},
-				Spec: &appcorev1.PersistentVolumeClaimSpecApplyConfiguration{
-					AccessModes: []corev1.PersistentVolumeAccessMode{
-						corev1.ReadWriteOnce,
-					},
-					Resources: &appcorev1.VolumeResourceRequirementsApplyConfiguration{
-						Requests: &corev1.ResourceList{
-							corev1.ResourceStorage: resource.MustParse(fmt.Sprintf("%dGi", deployment.Volume.StorageGB)),
-						},
+				Name:      &deployment.Name,
+				MountPath: &deployment.Volume.MountPath,
+			},
+		}
+		spec.Template.Spec.Volumes = []appcorev1.VolumeApplyConfiguration{
+			{
+				Name: &deployment.Name,
+				VolumeSourceApplyConfiguration: appcorev1.VolumeSourceApplyConfiguration{
+					PersistentVolumeClaim: &appcorev1.PersistentVolumeClaimVolumeSourceApplyConfiguration{
+						ClaimName: &deployment.Name,
 					},
 				},
 			},
 		}
 	}
 
-	_, err := d.clientset.AppsV1().StatefulSets(deployment.Namespace).Apply(context.TODO(), &appsv1apply.StatefulSetApplyConfiguration{
+	_, err := d.clientset.AppsV1().Deployments(deployment.Namespace).Apply(context.TODO(), &appsv1apply.DeploymentApplyConfiguration{
 		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
-			Kind:       util.StringPtr("StatefulSet"),
+			Kind:       util.StringPtr("Deployment"),
 			APIVersion: util.StringPtr("apps/v1"),
 		},
 		ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{

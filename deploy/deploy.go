@@ -56,7 +56,7 @@ func (d *DeployService) BatchCreate(deployments ...Deployment) error {
 			return err
 		}
 
-		if err := d.createStatefulSet(deployment); err != nil {
+		if err := d.createDeployment(deployment); err != nil {
 			return err
 		}
 
@@ -99,7 +99,7 @@ func (d *DeployService) Create(deployment Deployment) error {
 		}
 	}
 
-	if err := d.createStatefulSet(deployment); err != nil {
+	if err := d.createDeployment(deployment); err != nil {
 		return err
 	}
 
