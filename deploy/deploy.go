@@ -165,7 +165,7 @@ func (d *DeployService) DeleteService(deployment Deployment, envs bool, volume b
 	}
 
 	if volume {
-		if err := d.deletePVC(deployment); err != nil {
+		if err := d.clientset.CoreV1().PersistentVolumeClaims(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
 			return err
 		}
 	}

@@ -164,10 +164,6 @@ func (d *DeployService) createPVC(deployment Deployment) error {
 	return nil
 }
 
-func (d *DeployService) deletePVC(deployment Deployment) error {
-	return d.clientset.CoreV1().PersistentVolumeClaims(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{})
-}
-
 func (d *DeployService) createService(deployment Deployment) error {
 	_, err := d.clientset.CoreV1().Services(deployment.Namespace).Apply(context.TODO(), &appcorev1.ServiceApplyConfiguration{
 		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
