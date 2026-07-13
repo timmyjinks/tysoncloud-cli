@@ -261,7 +261,7 @@ func destroy(id string) error {
 			return err
 		}
 	case "svc":
-		if len(fields) < 2 {
+		if len(fields) < 6 {
 			return fmt.Errorf("invalid service diff row %q", id)
 		}
 		name, namespace := fields[0], fields[1]
@@ -271,10 +271,12 @@ func destroy(id string) error {
 			envs = true
 		}
 
+		hasVolume := fields[4] != ":"
+
 		err := app.dsvc.DeleteService(deploy.Deployment{
 			Namespace: namespace,
 			Name:      name,
-		}, envs)
+		}, envs, hasVolume)
 		if err != nil {
 			return err
 		}
