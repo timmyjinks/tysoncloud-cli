@@ -56,6 +56,12 @@ func (d *DeployService) BatchCreate(deployments ...Deployment) error {
 			return err
 		}
 
+		if deployment.Volume != nil {
+			if err := d.createPVC(deployment); err != nil {
+				return err
+			}
+		}
+
 		if err := d.createDeployment(deployment); err != nil {
 			return err
 		}
@@ -99,6 +105,12 @@ func (d *DeployService) Create(deployment Deployment) error {
 		}
 	}
 
+	if deployment.Volume != nil {
+		if err := d.createPVC(deployment); err != nil {
+			return err
+		}
+	}
+
 	if err := d.createDeployment(deployment); err != nil {
 		return err
 	}
@@ -137,7 +149,7 @@ func (d *DeployService) Delete(namespace string) error {
 	return d.clientset.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
 }
 
-func (d *DeployService) DeleteService(deployment Deployment, envs bool) error {
+func (d *DeployService) DeleteService(deployment Deployment, envs bool, volume bool) error {
 	if err := d.clientset.CoreV1().Services(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
@@ -148,8 +160,14 @@ func (d *DeployService) DeleteService(deployment Deployment, envs bool) error {
 		}
 	}
 
-	if err := d.clientset.AppsV1().StatefulSets(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
+	if err := d.clientset.AppsV1().Deployments(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
 		return err
+	}
+
+	if volume {
+		if err := d.clientset.CoreV1().PersistentVolumeClaims(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
+			return err
+		}
 	}
 
 	if err := d.clientset.AutoscalingV1().HorizontalPodAutoscalers(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {

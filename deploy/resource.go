@@ -2,6 +2,7 @@ package deploy
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/timmyjinks/tysoncloud-cli/util"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
@@ -125,6 +126,35 @@ func (d *DeployService) createDeployment(deployment Deployment) error {
 			},
 		},
 		Spec: spec,
+	}, metav1.ApplyOptions{
+		FieldManager: "controller",
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *DeployService) createPVC(deployment Deployment) error {
+	_, err := d.clientset.CoreV1().PersistentVolumeClaims(deployment.Namespace).Apply(context.TODO(), &appcorev1.PersistentVolumeClaimApplyConfiguration{
+		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
+			Kind:       util.StringPtr("PersistentVolumeClaim"),
+			APIVersion: util.StringPtr("v1"),
+		},
+		ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
+			Name:      &deployment.Name,
+			Namespace: &deployment.Namespace,
+		},
+		Spec: &appcorev1.PersistentVolumeClaimSpecApplyConfiguration{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			},
+			Resources: &appcorev1.VolumeResourceRequirementsApplyConfiguration{
+				Requests: &corev1.ResourceList{
+					corev1.ResourceStorage: resource.MustParse(fmt.Sprintf("%dGi", deployment.Volume.StorageGB)),
+				},
+			},
+		},
 	}, metav1.ApplyOptions{
 		FieldManager: "controller",
 	})
