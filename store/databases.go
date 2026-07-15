@@ -1,0 +1,67 @@
+package store
+
+import (
+	"encoding/json"
+	"time"
+
+	"github.com/supabase-community/postgrest-go"
+)
+
+type DatabasesTable struct {
+	ID            string    `json:"id,omitempty"`
+	ProjectId     string    `json:"project_id,omitempty"`
+	Name          string    `json:"name,omitempty"`
+	Engine        string    `json:"engine,omitempty"`
+	ResourceName  string    `json:"resource_name,omitempty"`
+	PublicDomain  string    `json:"public_domain,omitempty"`
+	PrivateDomain string    `json:"private_domain,omitempty"`
+	Port          int32     `json:"port,omitempty"`
+	StorageGB     int32     `json:"storage_gb,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
+func (s *SupabaseStoreService) GetDatabasesByProjectID(project_id string) ([]DatabasesTable, error) {
+	res, _, err := s.cli.From("databases").Select("*", "exact", false).Eq("project_id", project_id).Order("created_at", &postgrest.OrderOpts{Ascending: false}).Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	var table []DatabasesTable = []DatabasesTable{}
+	if err := json.Unmarshal(res, &table); err != nil {
+		return nil, err
+	}
+
+	return table, nil
+}
+
+func (s *SupabaseStoreService) GetDatabases() ([]DatabasesTable, error) {
+	res, _, err := s.cli.From("databases").Select("*", "exact", false).Order("created_at", &postgrest.OrderOpts{Ascending: false}).Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	var table []DatabasesTable = []DatabasesTable{}
+	if err := json.Unmarshal(res, &table); err != nil {
+		return nil, err
+	}
+
+	return table, nil
+}
+
+func (s *SupabaseStoreService) CreateDatabase(projectId, name, image, status string) error {
+	_, _, err := s.cli.From("databases").Insert(struct {
+		ID        string `json:"id,omitempty"`
+		ProjectId string `json:"project_id,omitempty"`
+		Name      string `json:"name,omitempty"`
+		Engine    string `json:"engine,omitempty"`
+	}{
+		ProjectId: projectId,
+		Name:      name,
+		Engine:    image,
+	}, false, "", "", "").Execute()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

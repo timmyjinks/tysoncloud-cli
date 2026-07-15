@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"helm.sh/helm/v4/pkg/action"
+	"helm.sh/helm/v4/pkg/cli"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -13,6 +15,7 @@ import (
 type DeployService struct {
 	clientset     *kubernetes.Clientset
 	gatewayClient *gatewayclient.Clientset
+	helmClient    *action.Configuration
 }
 
 func NewDeployService(kubeconfigPath string) *DeployService {
@@ -24,9 +27,17 @@ func NewDeployService(kubeconfigPath string) *DeployService {
 	clientset := kubernetes.NewForConfigOrDie(config)
 	gatewayClient := gatewayclient.NewForConfigOrDie(config)
 
+	settings := cli.New()
+	actionConfig := new(action.Configuration)
+
+	if err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), kubeconfigPath); err != nil {
+		panic(err.Error())
+	}
+
 	return &DeployService{
 		clientset:     clientset,
 		gatewayClient: gatewayClient,
+		helmClient:    actionConfig,
 	}
 }
 
