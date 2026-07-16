@@ -2,9 +2,14 @@ package deploy
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/timmyjinks/tysoncloud-cli/util"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	appcorev1 "k8s.io/client-go/applyconfigurations/core/v1"
+	appmetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -12,12 +17,13 @@ import (
 )
 
 type DeployService struct {
+	clusterIP     string
 	clientset     *kubernetes.Clientset
 	gatewayClient *gatewayclient.Clientset
 	dynamicClient *dynamic.DynamicClient
 }
 
-func NewDeployService(kubeconfigPath string) *DeployService {
+func NewDeployService(kubeconfigPath string) (*DeployService, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	if err != nil {
 		panic(err)
@@ -27,11 +33,21 @@ func NewDeployService(kubeconfigPath string) *DeployService {
 	gatewayClient := gatewayclient.NewForConfigOrDie(config)
 	dynamicClient := dynamic.NewForConfigOrDie(config)
 
+	svc, err := clientset.CoreV1().
+		Services("default").
+		Get(context.Background(), "kubernetes", metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	ip := svc.Spec.ClusterIP
+
 	return &DeployService{
+		clusterIP:     ip,
 		clientset:     clientset,
 		gatewayClient: gatewayClient,
 		dynamicClient: dynamicClient,
-	}
+	}, nil
 }
 
 func (d *DeployService) Get() {
@@ -87,7 +103,7 @@ func (d *DeployService) CreateProject(namespace string) error {
 		return err
 	}
 
-	if err := d.ensureNetworkPolicy(namespace); err != nil {
+	if err := d.ensureNetworkPolicy(namespace, d.clusterIP); err != nil {
 		return err
 	}
 	return nil
@@ -128,6 +144,35 @@ func (d *DeployService) Create(deployment Deployment) error {
 	}
 
 	return nil
+}
+
+func (d *DeployService) CreateDatabase(database Database) error {
+	switch database.Engine {
+	case "postgres":
+		_, err := d.clientset.CoreV1().Secrets(database.Namespace).Apply(context.TODO(), &appcorev1.SecretApplyConfiguration{
+			TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
+				Kind:       util.StringPtr("Secret"),
+				APIVersion: util.StringPtr("v1"),
+			},
+			ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
+				Namespace: &database.Namespace,
+				Name:      &database.Name,
+			},
+			Type: (*v1.SecretType)(util.StringPtr("kubernetes.io/basic-auth")),
+			Data: map[string][]byte{
+				"username": []byte(database.Name),
+				"password": []byte("password"),
+			},
+		}, metav1.ApplyOptions{
+			FieldManager: "controller",
+		})
+		if err != nil {
+			return err
+		}
+		return d.CreatePostgresDatabase(database)
+	default:
+		return errors.New("DB engine not found")
+	}
 }
 
 func (d *DeployService) Update(deployment Deployment, newName string) error {

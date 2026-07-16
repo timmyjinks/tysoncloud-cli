@@ -13,7 +13,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/networking/v1"
 )
 
-func (d *DeployService) ensureNetworkPolicy(namespace string) error {
+func (d *DeployService) ensureNetworkPolicy(namespace, clusterIP string) error {
 	_, err := d.clientset.NetworkingV1().NetworkPolicies(namespace).Apply(context.TODO(), &v1.NetworkPolicyApplyConfiguration{
 		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
 			Kind:       util.StringPtr("NetworkPolicy"),
@@ -116,7 +116,7 @@ func (d *DeployService) ensureNetworkPolicy(namespace string) error {
 					To: []v1.NetworkPolicyPeerApplyConfiguration{
 						{
 							IPBlock: &v1.IPBlockApplyConfiguration{
-								CIDR: util.StringPtr("192.168.0.18/32"),
+								CIDR: util.StringPtr(clusterIP),
 							},
 						},
 					},

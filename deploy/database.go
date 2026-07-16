@@ -44,15 +44,25 @@ func (d *DeployService) CreatePostgresDatabase(database Database) error {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      database.Name,
 			Namespace: database.Namespace,
-			Labels: map[string]string{
-				"app.kubernetes.io/component": "database",
-			},
 		},
 		Spec: cnpgv1.ClusterSpec{
+			InheritedMetadata: &cnpgv1.EmbeddedObjectMetadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/component": "database",
+				},
+			},
 			Instances: 1,
 
-			StorageConfiguration: cnpgv1.StorageConfiguration{
-				Size: "5Gi",
+			Managed: &cnpgv1.ManagedConfiguration{
+				Roles: []cnpgv1.RoleConfiguration{
+					{
+						Name:  database.Name,
+						Login: true,
+						PasswordSecret: &api.LocalObjectReference{
+							Name: database.Name,
+						},
+					},
+				},
 			},
 
 			Bootstrap: &cnpgv1.BootstrapConfiguration{
@@ -62,6 +72,12 @@ func (d *DeployService) CreatePostgresDatabase(database Database) error {
 				},
 			},
 		},
+	}
+
+	if database.StorageGB <= 0 {
+		cluster.Spec.StorageConfiguration = cnpgv1.StorageConfiguration{
+			Size: fmt.Sprintf("%sGi", database.StorageGB),
+		}
 	}
 
 	obj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(cluster)

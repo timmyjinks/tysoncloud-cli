@@ -273,8 +273,8 @@ func create(id string, state *infraState) error {
 			return err
 		}
 	case "db":
-		if len(fields) < 2 {
-			return fmt.Errorf("invalid service diff row %q", id)
+		if len(fields) < 5 {
+			return fmt.Errorf("invalid database diff row %q", id)
 		}
 		name, namespace := fields[0], fields[1]
 
@@ -284,6 +284,7 @@ func create(id string, state *infraState) error {
 			Namespace: namespace,
 			Name:      name,
 			Engine:    database.Engine,
+			StorageGB: database.StorageGB,
 		})
 		if err != nil {
 			return err
@@ -326,8 +327,8 @@ func destroy(id string) error {
 			return err
 		}
 	case "db":
-		if len(fields) < 4 {
-			return fmt.Errorf("invalid service diff row %q", id)
+		if len(fields) < 5 {
+			return fmt.Errorf("invalid database diff row %q", id)
 		}
 		name, namespace := fields[0], fields[1]
 
