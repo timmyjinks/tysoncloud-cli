@@ -16,21 +16,6 @@ import (
 	appmetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-type Deployment struct {
-	Namespace string
-	Name      string
-	Hostname  string
-	Env       map[string][]byte
-	Image     string
-	Port      int32
-	Volume    *Volume
-}
-
-type Volume struct {
-	MountPath string
-	StorageGB int32
-}
-
 func (d *DeployService) createDeployment(deployment Deployment) error {
 	container := []appcorev1.ContainerApplyConfiguration{
 		{

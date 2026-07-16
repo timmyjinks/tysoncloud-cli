@@ -2,38 +2,15 @@ package deploy
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
+	"github.com/cloudnative-pg/machinery/pkg/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
-
-type Database struct {
-	Namespace string
-	Name      string
-	Engine    string
-}
-
-func (d *DeployService) CreateDatabase(database Database) error {
-	switch database.Engine {
-	case "postgres":
-		return d.CreatePostgresDatabase(database)
-	default:
-		return errors.New("DB engine not found")
-	}
-}
-
-func (d *DeployService) DeleteDatabase(database Database) error {
-	gvr := schema.GroupVersionResource{
-		Group:    "postgresql.cnpg.io",
-		Version:  "v1",
-		Resource: "clusters",
-	}
-	return d.dynamicClient.Resource(gvr).Namespace(database.Namespace).Delete(context.Background(), database.Name, metav1.DeleteOptions{})
-}
 
 func (d *DeployService) CreatePostgresDatabase(database Database) error {
 	cluster := &cnpgv1.Cluster{
@@ -105,4 +82,13 @@ func (d *DeployService) CreatePostgresDatabase(database Database) error {
 		return err
 	}
 	return nil
+}
+
+func (d *DeployService) DeleteDatabase(database Database) error {
+	gvr := schema.GroupVersionResource{
+		Group:    "postgresql.cnpg.io",
+		Version:  "v1",
+		Resource: "clusters",
+	}
+	return d.dynamicClient.Resource(gvr).Namespace(database.Namespace).Delete(context.Background(), database.Name, metav1.DeleteOptions{})
 }
