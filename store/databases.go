@@ -13,10 +13,9 @@ type DatabasesTable struct {
 	Name          string    `json:"name,omitempty"`
 	Engine        string    `json:"engine,omitempty"`
 	ResourceName  string    `json:"resource_name,omitempty"`
-	PublicDomain  string    `json:"public_domain,omitempty"`
 	PrivateDomain string    `json:"private_domain,omitempty"`
 	Port          int32     `json:"port,omitempty"`
-	StorageGB     int32     `json:"storage_gb,omitempty"`
+	StorageGB     int32     `json:"storage,omitempty"`
 	CreatedAt     time.Time `json:"created_at"`
 }
 

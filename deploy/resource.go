@@ -205,6 +205,9 @@ func (d *DeployService) createHPA(deployment Deployment) error {
 		},
 		ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
 			Name: &deployment.Name,
+			Labels: map[string]string{
+				"app.kubernetes.io/component": "service",
+			},
 		},
 		Spec: &v2.HorizontalPodAutoscalerSpecApplyConfiguration{
 			ScaleTargetRef: &v2.CrossVersionObjectReferenceApplyConfiguration{

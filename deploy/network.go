@@ -13,15 +13,15 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/networking/v1"
 )
 
-func (d *DeployService) ensureNetworkPolicy(deployment Deployment) error {
-	_, err := d.clientset.NetworkingV1().NetworkPolicies(deployment.Namespace).Apply(context.TODO(), &v1.NetworkPolicyApplyConfiguration{
+func (d *DeployService) ensureNetworkPolicy(namespace string) error {
+	_, err := d.clientset.NetworkingV1().NetworkPolicies(namespace).Apply(context.TODO(), &v1.NetworkPolicyApplyConfiguration{
 		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
 			Kind:       util.StringPtr("NetworkPolicy"),
 			APIVersion: util.StringPtr("networking.k8s.io/v1"),
 		},
 		ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
-			Name:      &deployment.Namespace,
-			Namespace: &deployment.Namespace,
+			Name:      &namespace,
+			Namespace: &namespace,
 		},
 		Spec: &v1.NetworkPolicySpecApplyConfiguration{
 			PolicyTypes: []netv1.PolicyType{
@@ -48,6 +48,7 @@ func (d *DeployService) ensureNetworkPolicy(deployment Deployment) error {
 				{
 					To: []v1.NetworkPolicyPeerApplyConfiguration{
 						{
+
 							PodSelector: &appmetav1.LabelSelectorApplyConfiguration{},
 						},
 					},
@@ -89,6 +90,46 @@ func (d *DeployService) ensureNetworkPolicy(deployment Deployment) error {
 		},
 	}, metav1.ApplyOptions{FieldManager: "controller"})
 	if err != nil {
+		return err
+	}
+
+	if _, err := d.clientset.NetworkingV1().NetworkPolicies(namespace).Apply(context.TODO(), &v1.NetworkPolicyApplyConfiguration{
+		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
+			Kind:       util.StringPtr("NetworkPolicy"),
+			APIVersion: util.StringPtr("networking.k8s.io/v1"),
+		},
+		ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
+			Name:      util.StringPtr(namespace + "-database"),
+			Namespace: &namespace,
+		},
+		Spec: &v1.NetworkPolicySpecApplyConfiguration{
+			PolicyTypes: []netv1.PolicyType{
+				"Egress",
+			},
+			PodSelector: &appmetav1.LabelSelectorApplyConfiguration{
+				MatchLabels: map[string]string{
+					"app.kubernetes.io/component": "database",
+				},
+			},
+			Egress: []v1.NetworkPolicyEgressRuleApplyConfiguration{
+				{
+					To: []v1.NetworkPolicyPeerApplyConfiguration{
+						{
+							IPBlock: &v1.IPBlockApplyConfiguration{
+								CIDR: util.StringPtr("192.168.0.18/32"),
+							},
+						},
+					},
+					Ports: []v1.NetworkPolicyPortApplyConfiguration{
+						{
+							Protocol: (*corev1.Protocol)(util.StringPtr("TCP")),
+							Port:     &intstr.IntOrString{IntVal: 6443},
+						},
+					},
+				},
+			},
+		},
+	}, metav1.ApplyOptions{FieldManager: "controller"}); err != nil {
 		return err
 	}
 	return nil

@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"helm.sh/helm/v4/pkg/action"
-	"helm.sh/helm/v4/pkg/cli"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	gatewayclient "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned"
@@ -15,29 +14,23 @@ import (
 type DeployService struct {
 	clientset     *kubernetes.Clientset
 	gatewayClient *gatewayclient.Clientset
-	helmClient    *action.Configuration
+	dynamicClient *dynamic.DynamicClient
 }
 
 func NewDeployService(kubeconfigPath string) *DeployService {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	if err != nil {
-		panic(err.Error())
+		panic(err)
 	}
 
 	clientset := kubernetes.NewForConfigOrDie(config)
 	gatewayClient := gatewayclient.NewForConfigOrDie(config)
-
-	settings := cli.New()
-	actionConfig := new(action.Configuration)
-
-	if err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), kubeconfigPath); err != nil {
-		panic(err.Error())
-	}
+	dynamicClient := dynamic.NewForConfigOrDie(config)
 
 	return &DeployService{
 		clientset:     clientset,
 		gatewayClient: gatewayClient,
-		helmClient:    actionConfig,
+		dynamicClient: dynamicClient,
 	}
 }
 
@@ -93,16 +86,16 @@ func (d *DeployService) CreateProject(namespace string) error {
 	if err != nil {
 		return err
 	}
+
+	if err := d.ensureNetworkPolicy(namespace); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (d *DeployService) Create(deployment Deployment) error {
 	err := d.ensureNamespace(deployment.Namespace)
 	if err != nil {
-		return err
-	}
-
-	if err := d.ensureNetworkPolicy(deployment); err != nil {
 		return err
 	}
 

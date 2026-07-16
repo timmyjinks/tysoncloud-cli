@@ -19,7 +19,7 @@ type infraState struct {
 	services           []store.ServicesTable
 	environments       []store.EnvironmentsTable
 	volumes            []store.VolumesTable
-	database           []store.DatabasesTable
+	databases          []store.DatabasesTable
 	servicesMap        map[string][]store.ServicesTable
 	servicesByNameMap  map[string]store.ServicesTable
 	databasesMap       map[string][]store.DatabasesTable
@@ -158,7 +158,7 @@ func fetchAll() (*infraState, error) {
 		services:           services,
 		environments:       environments,
 		volumes:            volumes,
-		database:           databases,
+		databases:          databases,
 		servicesMap:        servicesMap,
 		servicesByNameMap:  servicesByNameMap,
 		databasesMap:       databasesMap,
@@ -187,7 +187,7 @@ func getCurrentState(s *infraState) string {
 		}
 
 		for _, database := range databases {
-			fmt.Fprintln(&currentState, database.ResourceName, project.Namespace, database.Port, database.Engine)
+			fmt.Fprintln(&currentState, database.ResourceName, project.Namespace, database.Port, database.Engine, database.StorageGB)
 		}
 	}
 	return currentState.String()
@@ -202,6 +202,7 @@ func getCurrentStateFailed(s *infraState, exclude map[string]bool) string {
 		}
 		fmt.Fprintln(&currentState, project.Namespace)
 		services := s.servicesMap[project.ID]
+		databases := s.databasesMap[project.ID]
 		for _, service := range services {
 			if exclude[service.ResourceName] {
 				continue
@@ -214,6 +215,14 @@ func getCurrentStateFailed(s *infraState, exclude map[string]bool) string {
 			} else {
 				fmt.Fprintln(&currentState, service.ResourceName, project.Namespace, service.Port, service.Image, volume.MountPath, volume.StorageGB, environments)
 			}
+		}
+
+		for _, database := range databases {
+			if exclude[database.ResourceName] {
+				fmt.Println("DLKSDJKSDJLKSDJFKDLJJJJJJJJJJJj")
+				continue
+			}
+			fmt.Fprintln(&currentState, database.ResourceName, project.Namespace, database.Port, database.Engine, database.StorageGB)
 		}
 	}
 	return currentState.String()
