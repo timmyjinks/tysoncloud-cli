@@ -219,7 +219,6 @@ func getCurrentStateFailed(s *infraState, exclude map[string]bool) string {
 
 		for _, database := range databases {
 			if exclude[database.ResourceName] {
-				fmt.Println("DLKSDJKSDJLKSDJFKDLJJJJJJJJJJJj")
 				continue
 			}
 			fmt.Fprintln(&currentState, database.ResourceName, project.Namespace, database.Port, database.Engine, database.StorageGB)

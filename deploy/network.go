@@ -116,7 +116,7 @@ func (d *DeployService) ensureNetworkPolicy(namespace, clusterIP string) error {
 					To: []v1.NetworkPolicyPeerApplyConfiguration{
 						{
 							IPBlock: &v1.IPBlockApplyConfiguration{
-								CIDR: util.StringPtr(clusterIP),
+								CIDR: util.StringPtr(clusterIP + "/32"),
 							},
 						},
 					},
