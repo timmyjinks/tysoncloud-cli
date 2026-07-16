@@ -4,6 +4,7 @@ go 1.26.4
 
 require (
 	github.com/cloudnative-pg/cloudnative-pg v1.30.0
+	github.com/cloudnative-pg/machinery v0.5.0
 	github.com/go-logr/logr v1.4.3
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-sqlite3 v1.14.45
@@ -25,7 +26,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudnative-pg/barman-cloud v0.5.1 // indirect
 	github.com/cloudnative-pg/cnpg-i v0.5.0 // indirect
-	github.com/cloudnative-pg/machinery v0.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
