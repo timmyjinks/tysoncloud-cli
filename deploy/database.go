@@ -53,7 +53,7 @@ func (d *DeployService) CreatePostgresDatabase(database Database) error {
 
 	if database.StorageGB <= 0 {
 		cluster.Spec.StorageConfiguration = cnpgv1.StorageConfiguration{
-			Size: fmt.Sprintf("%sGi", database.StorageGB),
+			Size: fmt.Sprintf("%dGi", database.StorageGB),
 		}
 	}
 
