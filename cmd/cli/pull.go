@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"path"
@@ -64,7 +65,7 @@ var pullCmd = &cobra.Command{
 
 		for _, d := range deletions {
 			wg.Go(func() {
-				err := destroy(d)
+				err := destroy(cmd.Context(), d)
 				if err != nil {
 					mu.Lock()
 					errorEdits[strings.Split(d, " ")[0]] = true
@@ -83,7 +84,7 @@ var pullCmd = &cobra.Command{
 
 		for _, t := range targets {
 			wg.Go(func() {
-				err := create(t, state)
+				err := create(cmd.Context(), t, state)
 				if err != nil {
 					mu.Lock()
 					errorEdits[strings.Split(t, " ")[0]] = true
@@ -193,7 +194,7 @@ func getCurrentStateFailed(s *infraState, exclude map[string]bool) string {
 	return currentState.String()
 }
 
-func create(id string, state *infraState) error {
+func create(ctx context.Context, id string, state *infraState) error {
 	fields := strings.Fields(id)
 	if len(fields) == 0 {
 		return fmt.Errorf("invalid empty diff row")
@@ -202,7 +203,7 @@ func create(id string, state *infraState) error {
 
 	switch resource {
 	case "proj":
-		err := app.dsvc.CreateProject(id)
+		err := app.dsvc.CreateProject(ctx, id)
 		if err != nil {
 			return err
 		}
@@ -225,7 +226,7 @@ func create(id string, state *infraState) error {
 
 		environments := state.environmentsMap[service.ID]
 
-		err := app.dsvc.Create(deploy.Deployment{
+		err := app.dsvc.Create(ctx, deploy.Deployment{
 			Namespace: namespace,
 			Name:      name,
 			Hostname:  service.PublicDomain,
@@ -241,7 +242,7 @@ func create(id string, state *infraState) error {
 	return nil
 }
 
-func destroy(id string) error {
+func destroy(ctx context.Context, id string) error {
 	fields := strings.Fields(id)
 	if len(fields) == 0 {
 		return fmt.Errorf("invalid empty diff row")
@@ -250,7 +251,7 @@ func destroy(id string) error {
 
 	switch resource {
 	case "proj":
-		err := app.dsvc.Delete(id)
+		err := app.dsvc.Delete(ctx, id)
 		if err != nil {
 			return err
 		}
@@ -267,7 +268,7 @@ func destroy(id string) error {
 
 		hasVolume := fields[4] != ":"
 
-		err := app.dsvc.DeleteService(deploy.Deployment{
+		err := app.dsvc.DeleteService(ctx, deploy.Deployment{
 			Namespace: namespace,
 			Name:      name,
 		}, envs, hasVolume)

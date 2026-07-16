@@ -13,8 +13,8 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/networking/v1"
 )
 
-func (d *DeployService) ensureNetworkPolicy(deployment Deployment) error {
-	_, err := d.clientset.NetworkingV1().NetworkPolicies(deployment.Namespace).Apply(context.TODO(), &v1.NetworkPolicyApplyConfiguration{
+func (d *DeployService) ensureNetworkPolicy(ctx context.Context, deployment Deployment) error {
+	_, err := d.clientset.NetworkingV1().NetworkPolicies(deployment.Namespace).Apply(ctx, &v1.NetworkPolicyApplyConfiguration{
 		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
 			Kind:       util.StringPtr("NetworkPolicy"),
 			APIVersion: util.StringPtr("networking.k8s.io/v1"),

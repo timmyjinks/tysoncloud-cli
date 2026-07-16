@@ -35,7 +35,7 @@ var deleteDeploymentCmd = &cobra.Command{
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		namespace := args[0]
-		err := app.dsvc.Delete(namespace)
+		err := app.dsvc.Delete(cmd.Context(), namespace)
 		if err != nil {
 			return err
 		}

@@ -31,7 +31,7 @@ type Volume struct {
 	StorageGB int32
 }
 
-func (d *DeployService) createDeployment(deployment Deployment) error {
+func (d *DeployService) createDeployment(ctx context.Context, deployment Deployment) error {
 	container := []appcorev1.ContainerApplyConfiguration{
 		{
 			Name:  &deployment.Name,
@@ -111,7 +111,7 @@ func (d *DeployService) createDeployment(deployment Deployment) error {
 		}
 	}
 
-	_, err := d.clientset.AppsV1().Deployments(deployment.Namespace).Apply(context.TODO(), &appsv1apply.DeploymentApplyConfiguration{
+	_, err := d.clientset.AppsV1().Deployments(deployment.Namespace).Apply(ctx, &appsv1apply.DeploymentApplyConfiguration{
 		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
 			Kind:       util.StringPtr("Deployment"),
 			APIVersion: util.StringPtr("apps/v1"),
@@ -135,8 +135,8 @@ func (d *DeployService) createDeployment(deployment Deployment) error {
 	return nil
 }
 
-func (d *DeployService) createPVC(deployment Deployment) error {
-	_, err := d.clientset.CoreV1().PersistentVolumeClaims(deployment.Namespace).Apply(context.TODO(), &appcorev1.PersistentVolumeClaimApplyConfiguration{
+func (d *DeployService) createPVC(ctx context.Context, deployment Deployment) error {
+	_, err := d.clientset.CoreV1().PersistentVolumeClaims(deployment.Namespace).Apply(ctx, &appcorev1.PersistentVolumeClaimApplyConfiguration{
 		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
 			Kind:       util.StringPtr("PersistentVolumeClaim"),
 			APIVersion: util.StringPtr("v1"),
@@ -164,8 +164,8 @@ func (d *DeployService) createPVC(deployment Deployment) error {
 	return nil
 }
 
-func (d *DeployService) createService(deployment Deployment) error {
-	_, err := d.clientset.CoreV1().Services(deployment.Namespace).Apply(context.TODO(), &appcorev1.ServiceApplyConfiguration{
+func (d *DeployService) createService(ctx context.Context, deployment Deployment) error {
+	_, err := d.clientset.CoreV1().Services(deployment.Namespace).Apply(ctx, &appcorev1.ServiceApplyConfiguration{
 		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
 			Kind:       util.StringPtr("Service"),
 			APIVersion: util.StringPtr("v1"),
@@ -197,8 +197,8 @@ func (d *DeployService) createService(deployment Deployment) error {
 	return nil
 }
 
-func (d *DeployService) createHPA(deployment Deployment) error {
-	_, err := d.clientset.AutoscalingV2().HorizontalPodAutoscalers(deployment.Namespace).Apply(context.TODO(), &v2.HorizontalPodAutoscalerApplyConfiguration{
+func (d *DeployService) createHPA(ctx context.Context, deployment Deployment) error {
+	_, err := d.clientset.AutoscalingV2().HorizontalPodAutoscalers(deployment.Namespace).Apply(ctx, &v2.HorizontalPodAutoscalerApplyConfiguration{
 		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
 			Kind:       util.StringPtr("HorizontalPodAutoscaler"),
 			APIVersion: util.StringPtr("autoscaling/v2"),
@@ -236,8 +236,8 @@ func (d *DeployService) createHPA(deployment Deployment) error {
 	return nil
 }
 
-func (d *DeployService) createSecret(deployment Deployment) error {
-	_, err := d.clientset.CoreV1().Secrets(deployment.Namespace).Apply(context.TODO(), &appcorev1.SecretApplyConfiguration{
+func (d *DeployService) createSecret(ctx context.Context, deployment Deployment) error {
+	_, err := d.clientset.CoreV1().Secrets(deployment.Namespace).Apply(ctx, &appcorev1.SecretApplyConfiguration{
 		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
 			Kind:       util.StringPtr("Secret"),
 			APIVersion: util.StringPtr("v1"),

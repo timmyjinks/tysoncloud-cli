@@ -10,8 +10,8 @@ import (
 	v1 "sigs.k8s.io/gateway-api/applyconfiguration/apis/v1"
 )
 
-func (d *DeployService) createHTTPRoute(deployment Deployment) error {
-	_, err := d.gatewayClient.GatewayV1().HTTPRoutes(deployment.Namespace).Apply(context.TODO(), &v1.HTTPRouteApplyConfiguration{
+func (d *DeployService) createHTTPRoute(ctx context.Context, deployment Deployment) error {
+	_, err := d.gatewayClient.GatewayV1().HTTPRoutes(deployment.Namespace).Apply(ctx, &v1.HTTPRouteApplyConfiguration{
 		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
 			Kind:       util.StringPtr("HTTPRoute"),
 			APIVersion: util.StringPtr("gateway.networking.k8s.io/v1"),
