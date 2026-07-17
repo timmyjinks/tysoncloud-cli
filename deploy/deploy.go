@@ -150,26 +150,6 @@ func (d *DeployService) Create(deployment Deployment) error {
 func (d *DeployService) CreateDatabase(database Database) error {
 	switch database.Engine {
 	case "postgres":
-		_, err := d.clientset.CoreV1().Secrets(database.Namespace).Apply(context.TODO(), &appcorev1.SecretApplyConfiguration{
-			TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
-				Kind:       util.StringPtr("Secret"),
-				APIVersion: util.StringPtr("v1"),
-			},
-			ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
-				Namespace: &database.Namespace,
-				Name:      &database.Name,
-			},
-			Type: (*v1.SecretType)(util.StringPtr("kubernetes.io/basic-auth")),
-			Data: map[string][]byte{
-				"username": []byte(database.Name),
-				"password": []byte("password"),
-			},
-		}, metav1.ApplyOptions{
-			FieldManager: "controller",
-		})
-		if err != nil {
-			return err
-		}
 		return d.CreatePostgresDatabase(database)
 	default:
 		return errors.New("DB engine not found")
