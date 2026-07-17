@@ -16,9 +16,6 @@ import (
 
 type infraState struct {
 	projects          []store.ProjectsTable
-	services          []store.ServicesTable
-	environments      []store.EnvironmentsTable
-	volumes           []store.VolumesTable
 	servicesMap       map[string][]store.ServicesTable
 	servicesByNameMap map[string]store.ServicesTable
 	volumesMap        map[string]*store.VolumesTable
@@ -143,9 +140,6 @@ func fetchAll() (*infraState, error) {
 
 	return &infraState{
 		projects:          projects,
-		services:          services,
-		environments:      environments,
-		volumes:           volumes,
 		servicesMap:       servicesMap,
 		servicesByNameMap: servicesByNameMap,
 		volumesMap:        volumesMap,
