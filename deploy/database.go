@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
-	"github.com/cloudnative-pg/machinery/pkg/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,18 +28,6 @@ func (d *DeployService) CreatePostgresDatabase(database Database) error {
 				},
 			},
 			Instances: 1,
-
-			Managed: &cnpgv1.ManagedConfiguration{
-				Roles: []cnpgv1.RoleConfiguration{
-					{
-						Name:  database.Name,
-						Login: true,
-						PasswordSecret: &api.LocalObjectReference{
-							Name: database.Name,
-						},
-					},
-				},
-			},
 
 			Bootstrap: &cnpgv1.BootstrapConfiguration{
 				InitDB: &cnpgv1.BootstrapInitDB{
