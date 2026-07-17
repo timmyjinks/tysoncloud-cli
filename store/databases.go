@@ -46,21 +46,3 @@ func (s *SupabaseStoreService) GetDatabases() ([]DatabasesTable, error) {
 
 	return table, nil
 }
-
-func (s *SupabaseStoreService) CreateDatabase(projectId, name, image, status string) error {
-	_, _, err := s.cli.From("databases").Insert(struct {
-		ID        string `json:"id,omitempty"`
-		ProjectId string `json:"project_id,omitempty"`
-		Name      string `json:"name,omitempty"`
-		Engine    string `json:"engine,omitempty"`
-	}{
-		ProjectId: projectId,
-		Name:      name,
-		Engine:    image,
-	}, false, "", "", "").Execute()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}

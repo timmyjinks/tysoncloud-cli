@@ -57,6 +57,15 @@ func (d *DeployService) CreatePostgresDatabase(database Database) error {
 		}
 	}
 
+	storageSize := database.StorageGB
+	if storageSize <= 0 {
+		storageSize = 5
+	}
+
+	cluster.Spec.StorageConfiguration = cnpgv1.StorageConfiguration{
+		Size: fmt.Sprintf("%dGi", storageSize),
+	}
+
 	obj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(cluster)
 	if err != nil {
 		return err

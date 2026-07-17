@@ -26,7 +26,7 @@ type DeployService struct {
 func NewDeployService(kubeconfigPath string) (*DeployService, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	clientset := kubernetes.NewForConfigOrDie(config)
@@ -50,15 +50,16 @@ func NewDeployService(kubeconfigPath string) (*DeployService, error) {
 	}, nil
 }
 
-func (d *DeployService) Get() {
+func (d *DeployService) Get() error {
 	pods, err := d.clientset.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
 	fmt.Printf("There are %d pods in the cluster (all): \n", len(pods.Items))
 	for _, pod := range pods.Items {
 		fmt.Println(pod.Name)
 	}
+	return nil
 }
 
 func (d *DeployService) BatchCreate(deployments ...Deployment) error {
