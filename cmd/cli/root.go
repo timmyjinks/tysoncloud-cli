@@ -63,7 +63,10 @@ var rootCmd = &cobra.Command{
 		}
 
 		if target.Annotations["deploy"] == "true" {
-			dsvc := deploy.NewDeployService(kubeConfig)
+			dsvc, err := deploy.NewDeployService(kubeConfig)
+			if err != nil {
+				return err
+			}
 			app.dsvc = dsvc
 			klog.SetLogger(logr.Discard())
 		}

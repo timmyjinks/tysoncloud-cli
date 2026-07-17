@@ -15,11 +15,13 @@ import (
 )
 
 type infraState struct {
-	projects          []store.ProjectsTable
-	servicesMap       map[string][]store.ServicesTable
-	servicesByNameMap map[string]store.ServicesTable
-	volumesMap        map[string]*store.VolumesTable
-	environmentsMap   map[string][]store.EnvironmentsTable
+	projects           []store.ProjectsTable
+	servicesMap        map[string][]store.ServicesTable
+	servicesByNameMap  map[string]store.ServicesTable
+	databasesMap       map[string][]store.DatabasesTable
+	databasesByNameMap map[string]store.DatabasesTable
+	volumesMap         map[string]*store.VolumesTable
+	environmentsMap    map[string][]store.EnvironmentsTable
 }
 
 var projectDir = fmt.Sprintf("%s/.tysoncloud", util.GetEnv("HOME", "./diff.txt"))
@@ -110,10 +112,12 @@ func fetchAll() (*infraState, error) {
 		services     []store.ServicesTable
 		environments []store.EnvironmentsTable
 		volumes      []store.VolumesTable
+		databases    []store.DatabasesTable
 	)
 
 	eg.Go(func() (err error) { projects, err = app.sp.GetProjects(); return })
 	eg.Go(func() (err error) { services, err = app.sp.GetServices(); return })
+	eg.Go(func() (err error) { databases, err = app.sp.GetDatabases(); return })
 	eg.Go(func() (err error) { volumes, err = app.sp.GetVolumes(); return })
 	eg.Go(func() (err error) { environments, err = app.sp.GetEnvironments(); return })
 
@@ -128,6 +132,13 @@ func fetchAll() (*infraState, error) {
 		servicesByNameMap[service.ResourceName] = service
 	}
 
+	databasesMap := make(map[string][]store.DatabasesTable)
+	databasesByNameMap := make(map[string]store.DatabasesTable)
+	for _, database := range databases {
+		databasesMap[database.ProjectId] = append(databasesMap[database.ProjectId], database)
+		databasesByNameMap[database.ResourceName] = database
+	}
+
 	environmentsMap := make(map[string][]store.EnvironmentsTable)
 	for _, environment := range environments {
 		environmentsMap[environment.ServiceId] = append(environmentsMap[environment.ServiceId], environment)
@@ -139,11 +150,13 @@ func fetchAll() (*infraState, error) {
 	}
 
 	return &infraState{
-		projects:          projects,
-		servicesMap:       servicesMap,
-		servicesByNameMap: servicesByNameMap,
-		volumesMap:        volumesMap,
-		environmentsMap:   environmentsMap,
+		projects:           projects,
+		servicesMap:        servicesMap,
+		servicesByNameMap:  servicesByNameMap,
+		databasesMap:       databasesMap,
+		databasesByNameMap: databasesByNameMap,
+		volumesMap:         volumesMap,
+		environmentsMap:    environmentsMap,
 	}, nil
 }
 
@@ -153,6 +166,7 @@ func getCurrentState(s *infraState) string {
 	for _, project := range s.projects {
 		fmt.Fprintln(&currentState, project.Namespace)
 		services := s.servicesMap[project.ID]
+		databases := s.databasesMap[project.ID]
 		for _, service := range services {
 			environments := util.ToEnvString(s.environmentsMap[service.ID])
 			volume := s.volumesMap[service.ID]
@@ -162,6 +176,10 @@ func getCurrentState(s *infraState) string {
 			} else {
 				fmt.Fprintln(&currentState, service.ResourceName, project.Namespace, service.Port, service.Image, volume.MountPath, volume.StorageGB, environments)
 			}
+		}
+
+		for _, database := range databases {
+			fmt.Fprintln(&currentState, database.ResourceName, project.Namespace, database.Port, database.Engine, database.StorageGB)
 		}
 	}
 	return currentState.String()
@@ -176,6 +194,7 @@ func getCurrentStateFailed(s *infraState, exclude map[string]bool) string {
 		}
 		fmt.Fprintln(&currentState, project.Namespace)
 		services := s.servicesMap[project.ID]
+		databases := s.databasesMap[project.ID]
 		for _, service := range services {
 			if exclude[service.ResourceName] {
 				continue
@@ -188,6 +207,13 @@ func getCurrentStateFailed(s *infraState, exclude map[string]bool) string {
 			} else {
 				fmt.Fprintln(&currentState, service.ResourceName, project.Namespace, service.Port, service.Image, volume.MountPath, volume.StorageGB, environments)
 			}
+		}
+
+		for _, database := range databases {
+			if exclude[database.ResourceName] {
+				continue
+			}
+			fmt.Fprintln(&currentState, database.ResourceName, project.Namespace, database.Port, database.Engine, database.StorageGB)
 		}
 	}
 	return currentState.String()
@@ -237,6 +263,23 @@ func create(id string, state *infraState) error {
 		if err != nil {
 			return err
 		}
+	case "db":
+		if len(fields) < 5 {
+			return fmt.Errorf("invalid database diff row %q", id)
+		}
+		name, namespace := fields[0], fields[1]
+
+		database := state.databasesByNameMap[name]
+
+		err := app.dsvc.CreateDatabase(deploy.Database{
+			Namespace: namespace,
+			Name:      name,
+			Engine:    database.Engine,
+			StorageGB: database.StorageGB,
+		})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -271,6 +314,19 @@ func destroy(id string) error {
 			Namespace: namespace,
 			Name:      name,
 		}, envs, hasVolume)
+		if err != nil {
+			return err
+		}
+	case "db":
+		if len(fields) < 5 {
+			return fmt.Errorf("invalid database diff row %q", id)
+		}
+		name, namespace := fields[0], fields[1]
+
+		err := app.dsvc.DeleteDatabase(deploy.Database{
+			Namespace: namespace,
+			Name:      name,
+		})
 		if err != nil {
 			return err
 		}

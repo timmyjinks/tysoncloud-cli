@@ -16,21 +16,6 @@ import (
 	appmetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-type Deployment struct {
-	Namespace string
-	Name      string
-	Hostname  string
-	Env       map[string][]byte
-	Image     string
-	Port      int32
-	Volume    *Volume
-}
-
-type Volume struct {
-	MountPath string
-	StorageGB int32
-}
-
 func (d *DeployService) createDeployment(deployment Deployment) error {
 	container := []appcorev1.ContainerApplyConfiguration{
 		{
@@ -205,10 +190,13 @@ func (d *DeployService) createHPA(deployment Deployment) error {
 		},
 		ObjectMetaApplyConfiguration: &appmetav1.ObjectMetaApplyConfiguration{
 			Name: &deployment.Name,
+			Labels: map[string]string{
+				"app.kubernetes.io/component": "service",
+			},
 		},
 		Spec: &v2.HorizontalPodAutoscalerSpecApplyConfiguration{
 			ScaleTargetRef: &v2.CrossVersionObjectReferenceApplyConfiguration{
-				Kind:       util.StringPtr("StatefulSet"),
+				Kind:       util.StringPtr("Deployment"),
 				APIVersion: util.StringPtr("apps/v1"),
 				Name:       &deployment.Name,
 			},
