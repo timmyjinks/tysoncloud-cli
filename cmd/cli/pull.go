@@ -16,10 +16,6 @@ import (
 
 type infraState struct {
 	projects           []store.ProjectsTable
-	services           []store.ServicesTable
-	environments       []store.EnvironmentsTable
-	volumes            []store.VolumesTable
-	databases          []store.DatabasesTable
 	servicesMap        map[string][]store.ServicesTable
 	servicesByNameMap  map[string]store.ServicesTable
 	databasesMap       map[string][]store.DatabasesTable
@@ -155,10 +151,6 @@ func fetchAll() (*infraState, error) {
 
 	return &infraState{
 		projects:           projects,
-		services:           services,
-		environments:       environments,
-		volumes:            volumes,
-		databases:          databases,
 		servicesMap:        servicesMap,
 		servicesByNameMap:  servicesByNameMap,
 		databasesMap:       databasesMap,
