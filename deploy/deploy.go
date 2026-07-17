@@ -58,42 +58,6 @@ func (d *DeployService) Get() error {
 	return nil
 }
 
-func (d *DeployService) BatchCreate(deployments ...Deployment) error {
-	for _, deployment := range deployments {
-		err := d.ensureNamespace(deployment.Namespace)
-		if err != nil {
-			return err
-		}
-
-		if err := d.createSecret(deployment); err != nil {
-			return err
-		}
-
-		if err := d.createService(deployment); err != nil {
-			return err
-		}
-
-		if deployment.Volume != nil {
-			if err := d.createPVC(deployment); err != nil {
-				return err
-			}
-		}
-
-		if err := d.createDeployment(deployment); err != nil {
-			return err
-		}
-
-		if err := d.createHPA(deployment); err != nil {
-			return err
-		}
-
-		if err := d.createHTTPRoute(deployment); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (d *DeployService) CreateProject(namespace string) error {
 	err := d.ensureNamespace(namespace)
 	if err != nil {
@@ -150,25 +114,6 @@ func (d *DeployService) CreateDatabase(database Database) error {
 	default:
 		return errors.New("DB engine not found")
 	}
-}
-
-func (d *DeployService) Update(deployment Deployment, newName string) error {
-	err := d.Delete(deployment.Namespace)
-	if err != nil {
-		return err
-	}
-
-	err = d.Create(Deployment{
-		Namespace: deployment.Namespace,
-		Name:      newName,
-		Image:     deployment.Image,
-		Port:      deployment.Port,
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (d *DeployService) Delete(namespace string) error {

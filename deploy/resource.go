@@ -196,7 +196,7 @@ func (d *DeployService) createHPA(deployment Deployment) error {
 		},
 		Spec: &v2.HorizontalPodAutoscalerSpecApplyConfiguration{
 			ScaleTargetRef: &v2.CrossVersionObjectReferenceApplyConfiguration{
-				Kind:       util.StringPtr("StatefulSet"),
+				Kind:       util.StringPtr("Deployment"),
 				APIVersion: util.StringPtr("apps/v1"),
 				Name:       &deployment.Name,
 			},
