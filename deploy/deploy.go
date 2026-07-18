@@ -55,6 +55,7 @@ func (d *DeployService) Get(ctx context.Context) error {
 	for _, pod := range pods.Items {
 		fmt.Println(pod.Name)
 	}
+	return nil
 }
 
 func (d *DeployService) BatchCreate(ctx context.Context, deployments ...Deployment) error {
@@ -99,7 +100,7 @@ func (d *DeployService) CreateProject(ctx context.Context, namespace string) err
 		return err
 	}
 
-	if err := d.ensureNetworkPolicy(namespace, d.clusterIP); err != nil {
+	if err := d.ensureNetworkPolicy(ctx, namespace, d.clusterIP); err != nil {
 		return err
 	}
 	return nil
