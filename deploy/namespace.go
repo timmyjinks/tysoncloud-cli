@@ -9,8 +9,8 @@ import (
 	appmetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-func (d *DeployService) ensureNamespace(namespace string) error {
-	_, err := d.clientset.CoreV1().Namespaces().Apply(context.TODO(), &appcorev1.NamespaceApplyConfiguration{
+func (d *DeployService) ensureNamespace(ctx context.Context, namespace string) error {
+	_, err := d.clientset.CoreV1().Namespaces().Apply(ctx, &appcorev1.NamespaceApplyConfiguration{
 		TypeMetaApplyConfiguration: appmetav1.TypeMetaApplyConfiguration{
 			APIVersion: util.StringPtr("v1"),
 			Kind:       util.StringPtr("Namespace"),

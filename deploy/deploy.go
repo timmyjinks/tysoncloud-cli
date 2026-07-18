@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -46,8 +47,8 @@ func NewDeployService(kubeconfigPath string) (*DeployService, error) {
 	}, nil
 }
 
-func (d *DeployService) Get() error {
-	pods, err := d.clientset.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
+func (d *DeployService) Get(ctx context.Context) error {
+	pods, err := d.clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -58,94 +59,130 @@ func (d *DeployService) Get() error {
 	return nil
 }
 
-func (d *DeployService) CreateProject(namespace string) error {
-	err := d.ensureNamespace(namespace)
+func (d *DeployService) BatchCreate(ctx context.Context, deployments ...Deployment) error {
+	for _, deployment := range deployments {
+		err := d.ensureNamespace(ctx, deployment.Namespace)
+		if err != nil {
+			return err
+		}
+
+		if err := d.createSecret(ctx, deployment); err != nil {
+			return err
+		}
+
+		if err := d.createService(ctx, deployment); err != nil {
+			return err
+		}
+
+		if deployment.Volume != nil {
+			if err := d.createPVC(ctx, deployment); err != nil {
+				return err
+			}
+		}
+
+		if err := d.createDeployment(ctx, deployment); err != nil {
+			return err
+		}
+
+		if err := d.createHPA(ctx, deployment); err != nil {
+			return err
+		}
+
+		if err := d.createHTTPRoute(ctx, deployment); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *DeployService) CreateProject(ctx context.Context, namespace string) error {
+	err := d.ensureNamespace(ctx, namespace)
 	if err != nil {
 		return err
 	}
 
-	if err := d.ensureNetworkPolicy(namespace, d.clusterIP); err != nil {
+	if err := d.ensureNetworkPolicy(ctx, namespace, d.clusterIP); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *DeployService) Create(deployment Deployment) error {
-	err := d.ensureNamespace(deployment.Namespace)
+func (d *DeployService) Create(ctx context.Context, deployment Deployment) error {
+	err := d.ensureNamespace(ctx, deployment.Namespace)
 	if err != nil {
 		return err
 	}
 
-	if err := d.createService(deployment); err != nil {
+	if err := d.createService(ctx, deployment); err != nil {
 		return err
 	}
 
 	if len(deployment.Env) != 0 {
-		if err := d.createSecret(deployment); err != nil {
+		if err := d.createSecret(ctx, deployment); err != nil {
 			return err
 		}
 	}
 
 	if deployment.Volume != nil {
-		if err := d.createPVC(deployment); err != nil {
+		if err := d.createPVC(ctx, deployment); err != nil {
 			return err
 		}
 	}
 
-	if err := d.createDeployment(deployment); err != nil {
+	if err := d.createDeployment(ctx, deployment); err != nil {
 		return err
 	}
 
-	if err := d.createHPA(deployment); err != nil {
+	if err := d.createHPA(ctx, deployment); err != nil {
 		return err
 	}
 
-	if err := d.createHTTPRoute(deployment); err != nil {
+	if err := d.createHTTPRoute(ctx, deployment); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (d *DeployService) CreateDatabase(database Database) error {
+func (d *DeployService) CreateDatabase(ctx context.Context, database Database) error {
 	switch database.Engine {
 	case "postgres":
-		return d.CreatePostgresDatabase(database)
+		return d.CreatePostgresDatabase(ctx, database)
 	default:
 		return errors.New("DB engine not found")
 	}
 }
 
-func (d *DeployService) Delete(namespace string) error {
-	return d.clientset.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
+func (d *DeployService) Delete(ctx context.Context, namespace string) error {
+	return d.clientset.CoreV1().Namespaces().Delete(ctx, namespace, metav1.DeleteOptions{})
 }
 
-func (d *DeployService) DeleteService(deployment Deployment, envs bool, volume bool) error {
-	if err := d.clientset.CoreV1().Services(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
+func (d *DeployService) DeleteService(ctx context.Context, deployment Deployment, envs bool, volume bool) error {
+	if err := d.clientset.CoreV1().Services(deployment.Namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); apierrors.IsNotFound(err) {
 		return err
 	}
 
 	if envs {
-		if err := d.clientset.CoreV1().Secrets(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
+		if err := d.clientset.CoreV1().Secrets(deployment.Namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); apierrors.IsNotFound(err) {
 			return err
 		}
 	}
 
-	if err := d.clientset.AppsV1().Deployments(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
+	if err := d.clientset.AppsV1().Deployments(deployment.Namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); apierrors.IsNotFound(err) {
 		return err
 	}
 
 	if volume {
-		if err := d.clientset.CoreV1().PersistentVolumeClaims(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
+		if err := d.clientset.CoreV1().PersistentVolumeClaims(deployment.Namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); !apierrors.IsNotFound(err) {
 			return err
 		}
 	}
 
-	if err := d.clientset.AutoscalingV1().HorizontalPodAutoscalers(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
+	if err := d.clientset.AutoscalingV1().HorizontalPodAutoscalers(deployment.Namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); !apierrors.IsNotFound(err) {
 		return err
 	}
 
-	if err := d.gatewayClient.GatewayV1().HTTPRoutes(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{}); err != nil {
+	if err := d.gatewayClient.GatewayV1().HTTPRoutes(deployment.Namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); !apierrors.IsNotFound(err) {
 		return err
 	}
 
