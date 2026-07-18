@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -157,31 +158,31 @@ func (d *DeployService) Delete(ctx context.Context, namespace string) error {
 }
 
 func (d *DeployService) DeleteService(ctx context.Context, deployment Deployment, envs bool, volume bool) error {
-	if err := d.clientset.CoreV1().Services(deployment.Namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); err != nil {
+	if err := d.clientset.CoreV1().Services(deployment.Namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); apierrors.IsNotFound(err) {
 		return err
 	}
 
 	if envs {
-		if err := d.clientset.CoreV1().Secrets(deployment.Namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); err != nil {
+		if err := d.clientset.CoreV1().Secrets(deployment.Namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); apierrors.IsNotFound(err) {
 			return err
 		}
 	}
 
-	if err := d.clientset.AppsV1().Deployments(deployment.Namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); err != nil {
+	if err := d.clientset.AppsV1().Deployments(deployment.Namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); apierrors.IsNotFound(err) {
 		return err
 	}
 
 	if volume {
-		if err := d.clientset.CoreV1().PersistentVolumeClaims(deployment.Namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); err != nil {
+		if err := d.clientset.CoreV1().PersistentVolumeClaims(deployment.Namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); !apierrors.IsNotFound(err) {
 			return err
 		}
 	}
 
-	if err := d.clientset.AutoscalingV1().HorizontalPodAutoscalers(deployment.Namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); err != nil {
+	if err := d.clientset.AutoscalingV1().HorizontalPodAutoscalers(deployment.Namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); !apierrors.IsNotFound(err) {
 		return err
 	}
 
-	if err := d.gatewayClient.GatewayV1().HTTPRoutes(deployment.Namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); err != nil {
+	if err := d.gatewayClient.GatewayV1().HTTPRoutes(deployment.Namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); !apierrors.IsNotFound(err) {
 		return err
 	}
 
