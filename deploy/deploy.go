@@ -143,10 +143,10 @@ func (d *DeployService) Create(ctx context.Context, deployment Deployment) error
 	return nil
 }
 
-func (d *DeployService) CreateDatabase(database Database) error {
+func (d *DeployService) CreateDatabase(ctx context.Context, database Database) error {
 	switch database.Engine {
 	case "postgres":
-		return d.CreatePostgresDatabase(database)
+		return d.CreatePostgresDatabase(ctx, database)
 	default:
 		return errors.New("DB engine not found")
 	}

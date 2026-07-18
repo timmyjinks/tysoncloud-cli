@@ -272,7 +272,7 @@ func create(ctx context.Context, id string, state *infraState) error {
 
 		database := state.databasesByNameMap[name]
 
-		err := app.dsvc.CreateDatabase(deploy.Database{
+		err := app.dsvc.CreateDatabase(ctx, deploy.Database{
 			Namespace: namespace,
 			Name:      name,
 			Engine:    database.Engine,

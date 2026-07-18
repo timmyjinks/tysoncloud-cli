@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-func (d *DeployService) CreatePostgresDatabase(database Database) error {
+func (d *DeployService) CreatePostgresDatabase(ctx context.Context, database Database) error {
 	cluster := &cnpgv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "postgresql.cnpg.io/v1",
@@ -67,7 +67,7 @@ func (d *DeployService) CreatePostgresDatabase(database Database) error {
 	_, err = d.dynamicClient.Resource(gvr).
 		Namespace(database.Namespace).
 		Apply(
-			context.Background(),
+			ctx,
 			database.Name,
 			&unstructured.Unstructured{Object: obj},
 			metav1.ApplyOptions{
